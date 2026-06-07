@@ -1,0 +1,188 @@
+# training/trainers/hf_trainer.py
+# training/trainers/hf_trainer.py
+
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+    Trainer,
+    TrainingArguments
+)
+
+from training.trainers.base_trainer import BaseTrainer
+import mlflow
+import mlflow.transformers
+import os
+
+
+class HuggingFaceTrainer(BaseTrainer):
+
+    def __init__(
+        self,
+        pretrained_name: str,
+        tokenizer_name: str,
+        num_labels: int,
+        max_length: int
+    ):
+
+        self.pretrained_name = pretrained_name
+        self.tokenizer_name = tokenizer_name
+        self.num_labels = num_labels
+        self.max_length = max_length
+
+        self.model = None
+        self.tokenizer = None
+
+    def _build_tokenizer(self):
+
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            self.tokenizer_name
+        )
+
+        return self.tokenizer
+
+    def _build_model(self):
+
+        self.model = (
+            AutoModelForSequenceClassification.from_pretrained(
+                self.pretrained_name,
+                num_labels=self.num_labels
+            )
+        )
+
+        return self.model
+
+    def _build_trainer(
+        self,
+        train_dataset=None,
+        eval_dataset=None
+    ):
+
+        training_args = TrainingArguments(
+
+            output_dir="artifacts/checkpoints",
+
+            num_train_epochs=3,
+
+            per_device_train_batch_size=16,
+
+            per_device_eval_batch_size=16,
+
+            learning_rate=2e-5,
+
+            weight_decay=0.01,
+
+            evaluation_strategy="epoch",
+
+            save_strategy="epoch",
+
+            load_best_model_at_end=True,
+
+            logging_dir="artifacts/logs",
+
+            report_to="none"
+        )
+
+        trainer = Trainer(
+            model=self.model,
+            args=training_args,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            tokenizer=self.tokenizer
+        )
+
+        return trainer
+
+    def train(self, dataset_cfg):
+
+        print(
+            f"Loading tokenizer: {self.tokenizer_name}"
+        )
+
+        self._build_tokenizer()
+
+        print(
+            f"Loading model: {self.pretrained_name}"
+        )
+
+        self._build_model()
+
+        print(
+            "Loading processed datasets..."
+        )
+
+        train_df = pd.read_csv(
+            dataset_cfg.processed_train_path
+        )
+
+        val_df = pd.read_csv(
+            dataset_cfg.processed_val_path
+        )
+
+        print(
+            f"Train samples: {len(train_df)}"
+        )
+
+        print(
+            f"Validation samples: {len(val_df)}"
+        )
+
+        print(
+            f"Training {self.pretrained_name}"
+        )
+
+        
+        # Convert train_df and val_df
+        # into HuggingFace Dataset objects
+
+        train_dataset = Dataset.from_pandas( train_df ) 
+        val_dataset = Dataset.from_pandas( val_df )
+
+        
+        # Tokenize text column
+        def tokenize_function(examples): 
+            return self.tokenizer( examples["text"], truncation=True, padding="max_length", max_length=self.max_length )
+
+        # TODO:
+        # Build Trainer using tokenized datasets
+        train_dataset = train_dataset.map( tokenize_function, batched=True )
+
+        val_dataset = val_dataset.map( tokenize_function, batched=True )
+
+        train_dataset = train_dataset.rename_column( "label", "labels" )
+        val_dataset = val_dataset.rename_column( "label", "labels" )
+
+        train_dataset.set_format( type="torch", columns=[ "input_ids", "attention_mask", "labels" ] )
+        val_dataset.set_format( type="torch", columns=[ "input_ids", "attention_mask", "labels" ] )
+
+
+        # trainer.train()
+        trainer = self._build_trainer( train_dataset=train_dataset, eval_dataset=val_dataset )
+
+        with mlflow.start_run():
+            trainer.train()
+            os.makedirs(
+                "artifacts/models",
+                exist_ok=True
+            )
+
+            trainer.save_model(
+                "artifacts/models"
+            )
+
+            self.tokenizer.save_pretrained(
+                "artifacts/models"
+            )
+            metrics = trainer.evaluate()
+            mlflow.log_param("model_name", self.pretrained_name)
+            mlflow.log_param("tokenizer_name", self.tokenizer_name)
+            mlflow.log_metrics(metrics)
+            mlflow.transformers.log_model(
+                transformers_model={
+                    "model": trainer.model,
+                    "tokenizer": self.tokenizer
+                },
+                artifact_path="model"
+            )
+
+        return trainer
+

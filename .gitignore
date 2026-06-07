@@ -1,0 +1,77 @@
+```gitignore
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Raw data
+Data/raw/**
+
+# Keep DVC metadata
+!Data/raw/**/*.dvc
+
+# Keep gitkeep
+!Data/raw/**/.gitkeep
+
+# Processed data
+Data/processed/**
+
+# Keep DVC metadata
+!Data/processed/**/*.dvc
+
+# Keep gitkeep
+!Data/processed/**/.gitkeep
+
+# Virtual Environments
+venv/
+.venv/
+env/
+
+# Environment Variables
+.env
+
+# Hydra
+outputs/
+multirun/
+
+# DVC
+.dvc/cache/
+
+# Data
+Data/raw/
+Data/processed/
+
+# Models
+artifacts/models/
+artifacts/checkpoints/
+
+# Logs
+artifacts/logs/
+logs/
+
+# MLflow
+mlruns/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Airflow
+airflow.db
+airflow-webserver.pid
+
+# Testing
+.pytest_cache/
+
+# Coverage
+.coverage
+htmlcov/
+```
