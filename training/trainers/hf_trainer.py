@@ -30,7 +30,7 @@ class HuggingFaceTrainer(BaseTrainer):
         pretrained_name: str,
         tokenizer_name: str,
         num_labels: int,
-        max_length: int
+        max_length: int,
         artifact_dir: str
     ):
 

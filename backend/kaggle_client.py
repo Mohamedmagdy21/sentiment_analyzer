@@ -149,3 +149,41 @@ class KaggleClient:
                 )
 
             time.sleep(interval)
+
+    def download_output(
+        self,
+        kernel_ref: str,
+        output_dir: str
+    ):
+
+        result = subprocess.run(
+            [
+                "kaggle",
+                "kernels",
+                "output",
+                kernel_ref,
+                "-p",
+                output_dir,
+                "-o"
+            ],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode != 0:
+
+            raise RuntimeError(
+                f"""
+                Failed to download kernel output.
+
+                STDOUT:
+                {result.stdout}
+
+                STDERR:
+                {result.stderr}
+                """
+            )
+
+        print(result.stdout)
+
+        return output_dir
