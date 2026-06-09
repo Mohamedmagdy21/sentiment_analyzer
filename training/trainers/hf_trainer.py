@@ -33,6 +33,7 @@ class HuggingFaceTrainer(BaseTrainer):
         num_labels: int,
         max_length: int,
         artifact_dir: str
+        labels: dict
     ):
 
         self.name=name
@@ -41,6 +42,7 @@ class HuggingFaceTrainer(BaseTrainer):
         self.num_labels = num_labels
         self.max_length = max_length
         self.artifact_dir=artifact_dir
+        self.labels=labels
 
         self.model = None
         self.tokenizer = None
