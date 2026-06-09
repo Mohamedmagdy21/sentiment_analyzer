@@ -32,8 +32,9 @@ class HuggingFaceTrainer(BaseTrainer):
         tokenizer_name: str,
         num_labels: int,
         max_length: int,
-        artifact_dir: str
-        labels: dict
+        artifact_dir: str,
+        labels: dict,
+        **kwargs
     ):
 
         self.name=name
