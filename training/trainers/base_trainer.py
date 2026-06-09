@@ -8,6 +8,4 @@ class BaseTrainer(ABC):
     def train(self):
         pass
 
-    @abstractmethod
-    def evaluate(self):
-        pass
+    
