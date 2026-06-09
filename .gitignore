@@ -75,3 +75,5 @@ airflow-webserver.pid
 .coverage
 htmlcov/
 ```
+airflow311/
+kaggle/*_processed/*.csv

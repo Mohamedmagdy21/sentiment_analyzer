@@ -224,3 +224,57 @@ class KaggleClient:
         print(result.stdout)
 
         return output_dir
+
+    def upload_dataset(
+        self,
+        dataset_dir: str,
+        version_notes: str = "Automated update",
+    ):
+        metadata_path = os.path.join(
+            dataset_dir, "dataset-metadata.json"
+        )
+        if not os.path.exists(metadata_path):
+            raise FileNotFoundError(
+                f"dataset-metadata.json not found in {dataset_dir}"
+            )
+
+        with open(metadata_path) as f:
+            metadata = json.load(f)
+        dataset_id = metadata["id"]
+
+        print(f"Uploading dataset {dataset_id} from {dataset_dir}")
+
+        result = subprocess.run(
+            ["kaggle", "datasets", "create", "-p", dataset_dir],
+            capture_output=True,
+            text=True,
+        )
+
+        if result.returncode == 0:
+            print(f"Dataset {dataset_id} created successfully.")
+            print(result.stdout)
+            return
+
+        print(f"Dataset may already exist; attempting version update...")
+        print(result.stdout)
+        print(result.stderr)
+
+        result = subprocess.run(
+            [
+                "kaggle", "datasets", "version",
+                "-p", dataset_dir,
+                "-m", version_notes,
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"Failed to upload dataset {dataset_id}.\n"
+                f"STDOUT: {result.stdout}\n"
+                f"STDERR: {result.stderr}"
+            )
+
+        print(f"Dataset {dataset_id} versioned successfully.")
+        print(result.stdout)
