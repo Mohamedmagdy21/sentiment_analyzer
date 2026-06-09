@@ -27,6 +27,7 @@ class HuggingFaceTrainer(BaseTrainer):
 
     def __init__(
         self,
+        name,
         pretrained_name: str,
         tokenizer_name: str,
         num_labels: int,
@@ -34,6 +35,7 @@ class HuggingFaceTrainer(BaseTrainer):
         artifact_dir: str
     ):
 
+        self.name=name
         self.pretrained_name = pretrained_name
         self.tokenizer_name = tokenizer_name
         self.num_labels = num_labels
