@@ -1,4 +1,4 @@
-```text
+
 # Core ML
 torch
 transformers
@@ -33,4 +33,4 @@ tqdm
 # Notebook Support
 jupyter
 ipykernel
-```
+
