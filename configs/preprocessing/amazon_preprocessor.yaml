@@ -1,0 +1,7 @@
+_target_: preprocessing.processors.amazon_preprocessor.AmazonPreprocessor
+
+test_validation_split: 0.2
+
+random_state: 42
+
+stratify: true

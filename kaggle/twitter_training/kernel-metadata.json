@@ -1,0 +1,10 @@
+{
+  "id": "mohamedmagdyw/twitter-training",
+  "title": "twitter-training",
+  "code_file": "twitter_training.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true
+}

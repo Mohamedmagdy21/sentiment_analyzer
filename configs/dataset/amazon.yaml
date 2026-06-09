@@ -1,0 +1,17 @@
+# configs/dataset/amazon.yaml
+
+name: amazon
+
+raw_path: Data/raw/archive(1)/Reviews.csv
+
+processed_train_path: Data/processed/amazon/train.csv
+processed_val_path: Data/processed/amazon/val.csv
+processed_test_path: Data/processed/amazon/test.csv
+
+text_column: Text
+label_column: Score
+
+encoding: utf-8
+
+num_labels: 2
+

@@ -1,0 +1,5 @@
+defaults:
+  - dataset: twitter
+  - preprocessing: twitter_preprocessor
+  - model: twitter_roberta
+  - evaluator: hf_evaluator

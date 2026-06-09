@@ -12,6 +12,15 @@ from training.trainers.base_trainer import BaseTrainer
 import mlflow
 import mlflow.transformers
 import os
+import pandas as pd
+from datasets import Dataset
+
+from sklearn.metrics import (
+    accuracy_score,
+    precision_recall_fscore_support
+)
+import numpy as np
+
 
 
 class HuggingFaceTrainer(BaseTrainer):
@@ -22,12 +31,14 @@ class HuggingFaceTrainer(BaseTrainer):
         tokenizer_name: str,
         num_labels: int,
         max_length: int
+        artifact_dir: str
     ):
 
         self.pretrained_name = pretrained_name
         self.tokenizer_name = tokenizer_name
         self.num_labels = num_labels
         self.max_length = max_length
+        self.artifact_dir=artifact_dir
 
         self.model = None
         self.tokenizer = None
@@ -71,7 +82,7 @@ class HuggingFaceTrainer(BaseTrainer):
 
             weight_decay=0.01,
 
-            evaluation_strategy="epoch",
+            eval_strategy="epoch",
 
             save_strategy="epoch",
 
@@ -134,8 +145,8 @@ class HuggingFaceTrainer(BaseTrainer):
         # Convert train_df and val_df
         # into HuggingFace Dataset objects
 
-        train_dataset = Dataset.from_pandas( train_df ) 
-        val_dataset = Dataset.from_pandas( val_df )
+        train_dataset = Dataset.from_pandas( train_df, preserve_index=False ) 
+        val_dataset = Dataset.from_pandas( val_df, preserve_index=False )
 
         
         # Tokenize text column
@@ -161,18 +172,18 @@ class HuggingFaceTrainer(BaseTrainer):
         with mlflow.start_run():
             trainer.train()
             os.makedirs(
-                "artifacts/models",
+                self.artifact_dir,
                 exist_ok=True
             )
 
             trainer.save_model(
-                "artifacts/models"
+                self.artifact_dir
             )
 
             self.tokenizer.save_pretrained(
-                "artifacts/models"
+                self.artifact_dir
             )
-            metrics = trainer.evaluate()
+            #metrics = trainer.evaluate()
             mlflow.log_param("model_name", self.pretrained_name)
             mlflow.log_param("tokenizer_name", self.tokenizer_name)
             mlflow.log_metrics(metrics)

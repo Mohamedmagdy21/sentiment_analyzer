@@ -11,7 +11,7 @@ def main(cfg):
 
     trainer = instantiate(cfg.model)
 
-    trainer.train()
+    trainer.train(cfg.dataset)
 
 
 if __name__ == "__main__":

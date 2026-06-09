@@ -1,0 +1,3 @@
+_target_: evaluation.evaluators.hf_evaluator.HuggingFaceEvaluator
+
+model_dir: artifacts/models

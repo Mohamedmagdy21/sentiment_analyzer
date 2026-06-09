@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: mlflow-server
+    runtime: python
+
+    buildCommand: |
+      pip install -r requirements.txt
+
+    startCommand: |
+      bash start.sh

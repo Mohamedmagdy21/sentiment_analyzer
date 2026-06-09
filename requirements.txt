@@ -1,0 +1,36 @@
+```text
+# Core ML
+torch
+transformers
+datasets
+accelerate
+
+# Configuration
+hydra-core
+omegaconf
+
+# Data Processing
+pandas
+numpy
+scikit-learn
+
+# Experiment Tracking
+mlflow
+
+# Data Versioning
+dvc
+
+# Workflow Orchestration
+apache-airflow
+
+# Kaggle
+kaggle
+python-dotenv
+
+# Utilities
+tqdm
+
+# Notebook Support
+jupyter
+ipykernel
+```

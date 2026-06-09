@@ -1,0 +1,19 @@
+# configs/model/amazon_roberta.yaml
+
+_target_: training.trainers.hf_trainer.HuggingFaceTrainer
+
+name: amazon_roberta
+
+pretrained_name: cardiffnlp/twitter-roberta-base-sentiment
+
+tokenizer_name: cardiffnlp/twitter-roberta-base-sentiment
+
+num_labels: 2
+
+max_length: 512
+
+artifact_dir: artifacts/models/amazon
+
+labels:
+  0: negative
+  1: positive
