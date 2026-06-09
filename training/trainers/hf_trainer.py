@@ -104,7 +104,6 @@ class HuggingFaceTrainer(BaseTrainer):
             args=training_args,
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
-            tokenizer=self.tokenizer
         )
 
         return trainer

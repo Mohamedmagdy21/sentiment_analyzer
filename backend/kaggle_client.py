@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import subprocess
 import time
 
@@ -16,6 +17,7 @@ class KaggleClient:
             "KAGGLE_API_TOKEN"
         )
         self._kernel_id = None
+        self._kernel_ref = None
 
         if not self.api_token:
             raise ValueError(
@@ -49,6 +51,7 @@ class KaggleClient:
             metadata = json.load(f)
 
         self._kernel_id = metadata["id"]
+        self._kernel_ref = metadata["id"]
 
         result = subprocess.run(
             [
@@ -62,7 +65,6 @@ class KaggleClient:
         )
 
         if result.returncode != 0:
-
             raise RuntimeError(
                 f"""
                 Kaggle push failed.
@@ -75,9 +77,33 @@ class KaggleClient:
                 """
             )
 
-        print(
-            "Kernel pushed successfully."
+        if "error" in result.stdout.lower():
+            # Push reported an error even with rc=0
+            raise RuntimeError(
+                f"""
+                Kaggle push reported error.
+
+                STDOUT:
+                {result.stdout}
+                """
+            )
+
+        # Parse version number: "Kernel version N successfully pushed."
+        m = re.search(
+            r"Kernel version\s+(\d+)",
+            result.stdout
         )
+        if m:
+            version = m.group(1)
+            self._kernel_ref = f"{metadata['id']}/{version}"
+            print(
+                f"Pushed version {version}, "
+                f"tracking: {self._kernel_ref}"
+            )
+        else:
+            print(
+                "Kernel pushed (version unknown)"
+            )
 
         print(
             result.stdout
@@ -89,7 +115,7 @@ class KaggleClient:
         self
     ):
 
-        if not self._kernel_id:
+        if not self._kernel_ref:
             raise ValueError(
                 "No kernel pushed yet."
             )
@@ -99,7 +125,7 @@ class KaggleClient:
                 "kaggle",
                 "kernels",
                 "status",
-                self._kernel_id
+                self._kernel_ref
             ],
             capture_output=True,
             text=True
@@ -127,15 +153,24 @@ class KaggleClient:
 
     def wait_for_completion(
         self,
-        interval: int = 60
+        interval: int = 60,
+        timeout: int = 28800,
     ):
 
-        if not self._kernel_id:
+        if not self._kernel_ref:
             raise ValueError(
                 "No kernel pushed yet."
             )
 
+        deadline = time.time() + timeout
+
         while True:
+            if time.time() > deadline:
+                raise TimeoutError(
+                    f"Kernel {self._kernel_ref} "
+                    f"did not complete within {timeout}s"
+                )
+
             status = self.get_status()
             print(
                 f"Status: {status}"
@@ -147,13 +182,19 @@ class KaggleClient:
                 )
                 return status
 
-            if status.upper() in (
+            terminal = (
                 "ERROR",
                 "FAILED",
-            ):
+                "CANCEL_ACKNOWLEDGED",
+                "CANCELLED",
+                "CANCELED",
+                "KILLED",
+                "TIMED_OUT",
+            )
+            if status.upper() in terminal:
                 raise RuntimeError(
-                    f"Kernel {self._kernel_id} "
-                    f"ended with status: {status}"
+                    f"Kernel {self._kernel_ref} "
+                    f"ended with terminal status: {status}"
                 )
 
             time.sleep(interval)

@@ -1,0 +1,29 @@
+dataset:
+  name: twitter
+  raw_path: Data/raw/sent/training.1600000.processed.noemoticon.csv
+  processed_train_path: Data/processed/twitter/train.csv
+  processed_val_path: Data/processed/twitter/val.csv
+  processed_test_path: Data/processed/twitter/test.csv
+  text_column: text
+  label_column: sentiment
+  encoding: latin-1
+  num_labels: 2
+preprocessing:
+  _target_: preprocessing.processors.preprocess_twitter.TwitterPreprocessor
+  test_validation_split: 0.2
+  random_state: 42
+  stratify: true
+model:
+  _target_: training.trainers.hf_trainer.HuggingFaceTrainer
+  name: twitter_roberta
+  pretrained_name: cardiffnlp/twitter-roberta-base-sentiment
+  tokenizer_name: cardiffnlp/twitter-roberta-base-sentiment
+  num_labels: 2
+  max_length: 512
+  artifact_dir: artifacts/models/twitter
+  labels:
+    0: negative
+    1: positive
+evaluator:
+  _target_: evaluation.evaluators.hf_evaluator.HuggingFaceEvaluator
+  model_dir: artifacts/models
