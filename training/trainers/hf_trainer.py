@@ -65,6 +65,7 @@ class HuggingFaceTrainer(BaseTrainer):
                 ignore_mismatched_sizes=True
             )
         )
+        )
 
         return self.model
 
