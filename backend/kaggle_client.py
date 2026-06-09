@@ -115,11 +115,19 @@ class KaggleClient:
                 """
             )
 
-        return result.stdout.strip()
+        raw = result.stdout.strip()
+        # Parse: "owner/slug has status \"KernelWorkerStatus.VALUE\""
+        if '"' in raw:
+            status = raw.split('"')[1]
+            if "." in status:
+                status = status.split(".")[1]
+        else:
+            status = raw
+        return status
 
     def wait_for_completion(
         self,
-        interval: int = 30
+        interval: int = 60
     ):
 
         if not self._kernel_id:
@@ -133,15 +141,15 @@ class KaggleClient:
                 f"Status: {status}"
             )
 
-            if status == "complete":
+            if status.upper() == "COMPLETE":
                 print(
                     "Kernel completed successfully."
                 )
                 return status
 
-            if status in (
-                "error",
-                "failed"
+            if status.upper() in (
+                "ERROR",
+                "FAILED",
             ):
                 raise RuntimeError(
                     f"Kernel {self._kernel_id} "

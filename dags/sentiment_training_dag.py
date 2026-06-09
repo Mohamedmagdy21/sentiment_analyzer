@@ -1,5 +1,4 @@
 import os
-import shutil
 import subprocess
 import sys
 import time
@@ -54,39 +53,6 @@ def _hydra_preprocess(dataset_name: str):
         )
 
     _log_duration(f"preprocessing {dataset_name}", start)
-
-
-def _upload_processed_data(dataset_name: str):
-    start = time.perf_counter()
-    print(f"[TIMING] Upload {dataset_name} data to Kaggle started")
-
-    src_dir = f"{PROJECT_ROOT}/Data/processed/{dataset_name}"
-    dst_dir = f"{PROJECT_ROOT}/kaggle/{dataset_name}_processed"
-
-    if not os.path.exists(src_dir):
-        raise FileNotFoundError(
-            f"Processed data not found at {src_dir}. "
-            f"Run preprocessing first."
-        )
-
-    for fname in os.listdir(src_dir):
-        shutil.copy2(
-            os.path.join(src_dir, fname),
-            os.path.join(dst_dir, fname),
-        )
-    print(f"Copied {dataset_name} processed CSVs to {dst_dir}")
-
-    sys.path.insert(0, PROJECT_ROOT)
-
-    from backend.kaggle_client import KaggleClient  # noqa: PLC0415
-
-    client = KaggleClient()
-    client.upload_dataset(
-        dst_dir,
-        version_notes=f"Automated update from Airflow - {dataset_name}",
-    )
-
-    _log_duration(f"upload {dataset_name} data", start)
 
 
 def _push_and_wait(kernel_dir: str, **context):
@@ -200,18 +166,6 @@ with DAG(
         op_kwargs={"dataset_name": "amazon"},
     )
 
-    upload_twitter_data = PythonOperator(
-        task_id="upload_twitter_data",
-        python_callable=_upload_processed_data,
-        op_kwargs={"dataset_name": "twitter"},
-    )
-
-    upload_amazon_data = PythonOperator(
-        task_id="upload_amazon_data",
-        python_callable=_upload_processed_data,
-        op_kwargs={"dataset_name": "amazon"},
-    )
-
     train_twitter_kaggle = PythonOperator(
         task_id="train_twitter_kaggle",
         python_callable=_push_and_wait,
@@ -252,7 +206,7 @@ with DAG(
 
     start >> [preprocess_twitter, preprocess_amazon]
 
-    preprocess_twitter >> upload_twitter_data >> train_twitter_kaggle >> download_twitter_artifacts >> evaluate_twitter
-    preprocess_amazon >> upload_amazon_data >> train_amazon_kaggle >> download_amazon_artifacts >> evaluate_amazon
+    preprocess_twitter >> train_twitter_kaggle >> download_twitter_artifacts >> evaluate_twitter
+    preprocess_amazon >> train_amazon_kaggle >> download_amazon_artifacts >> evaluate_amazon
 
     [evaluate_twitter, evaluate_amazon] >> end

@@ -7,5 +7,5 @@
     "is_private": true,
     "enable_gpu": true,
     "enable_internet": true,
-    "dataset_sources": ["mohamedmagdyw/amazon-processed"]
+    "dataset_sources": ["snap/amazon-fine-food-reviews"]
 }
