@@ -61,7 +61,8 @@ class HuggingFaceTrainer(BaseTrainer):
         self.model = (
             AutoModelForSequenceClassification.from_pretrained(
                 self.pretrained_name,
-                num_labels=self.num_labels
+                num_labels=self.num_labels,
+                ignore_mismatched_sizes=True
             )
         )
 
