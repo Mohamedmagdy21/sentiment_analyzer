@@ -92,11 +92,39 @@ def _download_artifacts(dataset_name: str, **context):
     client = KaggleClient()
     client._kernel_id = kernel_ref
 
-    artifact_dir = f"{PROJECT_ROOT}/artifacts/models/{dataset_name}"
-    log_dir = f"{PROJECT_ROOT}/artifacts/logs/{dataset_name}"
+    import tempfile
+    tmpdir = tempfile.mkdtemp(prefix=f"kaggle_{dataset_name}_")
 
-    client.download_output(kernel_ref, artifact_dir)
-    client.download_log(kernel_ref, log_dir)
+    client.download_output(kernel_ref, tmpdir)
+    client.download_log(kernel_ref, f"{PROJECT_ROOT}/artifacts/logs")
+
+    # Kaggle output nests everything under sentiment_analyzer/
+    src = os.path.join(tmpdir, "sentiment_analyzer", "artifacts", "models", dataset_name)
+    dst = f"{PROJECT_ROOT}/artifacts/models/{dataset_name}"
+
+    if os.path.isdir(src):
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        if os.path.isdir(dst):
+            import shutil
+            shutil.rmtree(dst)
+        shutil.move(src, dst)
+        print(f"Models moved to {dst}")
+    else:
+        # Try raw output as fallback
+        raw_model_dir = f"{tmpdir}/artifacts/models/{dataset_name}"
+        if os.path.isdir(raw_model_dir):
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            import shutil
+            if os.path.isdir(dst):
+                shutil.rmtree(dst)
+            shutil.move(raw_model_dir, dst)
+            print(f"Models moved to {dst}")
+        else:
+            print(f"No model directory found at {src} or {raw_model_dir}")
+            print(f"Contents of tmpdir: {os.listdir(tmpdir)}")
+
+    import shutil
+    shutil.rmtree(tmpdir)
 
     _log_duration(f"download artifacts {dataset_name}", start)
 

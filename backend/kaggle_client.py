@@ -202,14 +202,19 @@ class KaggleClient:
         output_dir: str
     ):
 
+        os.makedirs(output_dir, exist_ok=True)
+
+        log_path = os.path.join(
+            output_dir,
+            f"{kernel_ref.replace('/', '-')}.log"
+        )
+
         result = subprocess.run(
             [
                 "kaggle",
                 "kernels",
                 "logs",
                 kernel_ref,
-                "-p",
-                output_dir
             ],
             capture_output=True,
             text=True
@@ -229,9 +234,14 @@ class KaggleClient:
                 """
             )
 
-        print(result.stdout)
+        with open(log_path, "w") as f:
+            f.write(result.stdout)
 
-        return output_dir
+        print(
+            f"Kernel log saved to {log_path}"
+        )
+
+        return log_path
 
     def upload_dataset(
         self,
