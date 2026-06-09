@@ -187,3 +187,40 @@ class KaggleClient:
         print(result.stdout)
 
         return output_dir
+
+    def download_log(
+        self,
+        kernel_ref: str,
+        output_dir: str
+    ):
+
+        result = subprocess.run(
+            [
+                "kaggle",
+                "kernels",
+                "logs",
+                kernel_ref,
+                "-p",
+                output_dir
+            ],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode != 0:
+
+            raise RuntimeError(
+                f"""
+                Failed to download kernel logs.
+
+                STDOUT:
+                {result.stdout}
+
+                STDERR:
+                {result.stderr}
+                """
+            )
+
+        print(result.stdout)
+
+        return output_dir
