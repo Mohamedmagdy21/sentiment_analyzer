@@ -188,10 +188,10 @@ class HuggingFaceTrainer(BaseTrainer):
             self.tokenizer.save_pretrained(
                 self.artifact_dir
             )
-            metrics = trainer.evaluate()
+            #metrics = trainer.evaluate()
             mlflow.log_param("model_name", self.pretrained_name)
             mlflow.log_param("tokenizer_name", self.tokenizer_name)
-            mlflow.log_metrics(metrics)
+            #mlflow.log_metrics(metrics)
             mlflow.transformers.log_model(
                 transformers_model={
                     "model": trainer.model,
