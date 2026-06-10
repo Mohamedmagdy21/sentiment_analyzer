@@ -77,3 +77,6 @@ htmlcov/
 ```
 kaggle/*_processed/*.csv
 airflow311/
+.hydra/
+preprocess.log
+train.log
