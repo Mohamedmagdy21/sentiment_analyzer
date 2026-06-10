@@ -8,6 +8,16 @@ from transformers import (
     TrainingArguments
 )
 
+# Patch transformers 5.x _get_num_items_in_batch for T4 GPU compat
+from transformers import trainer as trainer_module
+orig_get_num_items = trainer_module.Trainer._get_num_items_in_batch
+def patched_get_num_items(self, batch_samples, device):
+    try:
+        return orig_get_num_items(self, batch_samples, device)
+    except Exception:
+        return sum(batch["labels"].numel() for batch in batch_samples)
+trainer_module.Trainer._get_num_items_in_batch = patched_get_num_items
+
 from training.trainers.base_trainer import BaseTrainer
 import mlflow
 import mlflow.transformers
