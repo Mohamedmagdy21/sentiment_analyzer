@@ -123,6 +123,27 @@ def _download_artifacts(dataset_name: str, **context):
             print(f"No model directory found at {src} or {raw_model_dir}")
             print(f"Contents of tmpdir: {os.listdir(tmpdir)}")
 
+    # Download MLflow run data if present
+    mlruns_src = os.path.join(tmpdir, "sentiment_analyzer", "artifacts", "mlruns")
+    mlruns_dst = f"{PROJECT_ROOT}/artifacts/mlruns"
+    if os.path.isdir(mlruns_src):
+        import shutil
+        os.makedirs(os.path.dirname(mlruns_dst), exist_ok=True)
+        if os.path.isdir(mlruns_dst):
+            shutil.rmtree(mlruns_dst)
+        shutil.move(mlruns_src, mlruns_dst)
+        print(f"MLflow runs moved to {mlruns_dst}")
+    else:
+        # Fallback: try raw output path
+        raw_mlruns = f"{tmpdir}/artifacts/mlruns"
+        if os.path.isdir(raw_mlruns):
+            import shutil
+            os.makedirs(os.path.dirname(mlruns_dst), exist_ok=True)
+            if os.path.isdir(mlruns_dst):
+                shutil.rmtree(mlruns_dst)
+            shutil.move(raw_mlruns, mlruns_dst)
+            print(f"MLflow runs moved to {mlruns_dst}")
+
     import shutil
     shutil.rmtree(tmpdir)
 

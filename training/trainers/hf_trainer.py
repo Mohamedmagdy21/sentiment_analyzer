@@ -79,6 +79,7 @@ class HuggingFaceTrainer(BaseTrainer):
             output_dir="artifacts/checkpoints",
 
             num_train_epochs=1,
+            max_steps=100,
 
             per_device_train_batch_size=16,
 
@@ -174,6 +175,9 @@ class HuggingFaceTrainer(BaseTrainer):
         # trainer.train()
         trainer = self._build_trainer( train_dataset=train_dataset, eval_dataset=val_dataset )
 
+        mlflow.set_tracking_uri(
+            f"file:{os.path.join(os.path.dirname(os.path.dirname(self.artifact_dir)), 'mlruns')}"
+        )
         with mlflow.start_run():
             trainer.train()
             os.makedirs(
