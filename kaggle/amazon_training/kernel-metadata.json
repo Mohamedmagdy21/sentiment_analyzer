@@ -1,11 +1,13 @@
 {
-    "id": "mohamedmagdyw/amazon-training",
-    "title": "amazon-training",
-    "code_file": "amazon_training.ipynb",
-    "language": "python",
-    "kernel_type": "notebook",
-    "is_private": true,
-    "enable_gpu": true,
-    "enable_internet": true,
-    "dataset_sources": ["snap/amazon-fine-food-reviews"]
+  "id": "mohamedmagdyw/amazon-training",
+  "title": "amazon-training",
+  "code_file": "amazon_training.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": true,
+  "dataset_sources": [
+    "snap/amazon-fine-food-reviews"
+  ]
 }
