@@ -1,9 +1,10 @@
 
 # Core ML
-torch
-transformers
-datasets
-accelerate
+torch>=2.11.0
+torchvision>=0.26.0
+transformers>=5.10.2
+datasets>=5.0.0
+accelerate>=1.13.0
 
 # Configuration
 hydra-core
@@ -33,4 +34,3 @@ tqdm
 # Notebook Support
 jupyter
 ipykernel
-
