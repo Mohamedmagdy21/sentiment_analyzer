@@ -76,7 +76,7 @@ class HuggingFaceTrainer(BaseTrainer):
 
             output_dir="artifacts/checkpoints",
 
-            num_train_epochs=1,
+            #num_train_epochs=1,
             max_steps=10,
  
             per_device_train_batch_size=16,
@@ -159,7 +159,7 @@ class HuggingFaceTrainer(BaseTrainer):
         def tokenize_function(examples): 
             return self.tokenizer( examples["text"], truncation=True, padding="max_length", max_length=self.max_length )
 
-        # TODO:
+        
         # Build Trainer using tokenized datasets
         train_dataset = train_dataset.map( tokenize_function, batched=True )
 
