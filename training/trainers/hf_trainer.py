@@ -176,7 +176,7 @@ class HuggingFaceTrainer(BaseTrainer):
         trainer = self._build_trainer( train_dataset=train_dataset, eval_dataset=val_dataset )
 
         mlflow.set_tracking_uri(
-            f"file:{os.path.join(os.path.dirname(os.path.dirname(self.artifact_dir)), 'mlruns')}"
+            f"sqlite:///{os.path.join(os.path.dirname(os.path.dirname(self.artifact_dir)), 'mlflow.db')}"
         )
         with mlflow.start_run():
             trainer.train()
