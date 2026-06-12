@@ -9,8 +9,6 @@ from transformers import (
 )
 
 from training.trainers.base_trainer import BaseTrainer
-import mlflow
-import mlflow.transformers
 import os
 import pandas as pd
 from datasets import Dataset
@@ -178,31 +176,20 @@ class HuggingFaceTrainer(BaseTrainer):
         trainer = self._build_trainer( train_dataset=train_dataset, eval_dataset=val_dataset )
 
         max_steps = int(os.environ.get("MAX_STEPS", "10"))
-        with mlflow.start_run():
-            trainer.train(max_steps=max_steps)
-            os.makedirs(
-                self.artifact_dir,
-                exist_ok=True
-            )
+        trainer.train(max_steps=max_steps)
 
-            trainer.save_model(
-                self.artifact_dir
-            )
+        os.makedirs(
+            self.artifact_dir,
+            exist_ok=True
+        )
 
-            self.tokenizer.save_pretrained(
-                self.artifact_dir
-            )
-            #metrics = trainer.evaluate()
-            mlflow.log_param("model_name", self.pretrained_name)
-            mlflow.log_param("tokenizer_name", self.tokenizer_name)
-            #mlflow.log_metrics(metrics)
-            mlflow.transformers.log_model(
-                transformers_model={
-                    "model": trainer.model,
-                    "tokenizer": self.tokenizer
-                },
-                artifact_path="model"
-            )
+        trainer.save_model(
+            self.artifact_dir
+        )
+
+        self.tokenizer.save_pretrained(
+            self.artifact_dir
+        )
 
         return trainer
 
