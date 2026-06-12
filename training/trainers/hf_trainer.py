@@ -177,11 +177,9 @@ class HuggingFaceTrainer(BaseTrainer):
         # trainer.train()
         trainer = self._build_trainer( train_dataset=train_dataset, eval_dataset=val_dataset )
 
-        mlflow.set_tracking_uri(
-            f"sqlite:///{os.path.join(os.path.dirname(os.path.dirname(self.artifact_dir)), 'mlflow.db')}"
-        )
+        max_steps = int(os.environ.get("MAX_STEPS", "10"))
         with mlflow.start_run():
-            trainer.train()
+            trainer.train(max_steps=max_steps)
             os.makedirs(
                 self.artifact_dir,
                 exist_ok=True
