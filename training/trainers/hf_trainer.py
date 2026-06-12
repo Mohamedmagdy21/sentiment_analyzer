@@ -79,24 +79,26 @@ class HuggingFaceTrainer(BaseTrainer):
             output_dir="artifacts/checkpoints",
 
             num_train_epochs=1,
-            max_steps=100,
-
+            max_steps=10,
+ 
             per_device_train_batch_size=16,
-
+ 
             per_device_eval_batch_size=16,
-
+ 
             learning_rate=2e-5,
-
+ 
             weight_decay=0.01,
-
-            eval_strategy="epoch",
-
-            save_strategy="epoch",
-
+ 
+            eval_strategy="steps",
+            eval_steps=10,
+ 
+            save_strategy="steps",
+            save_steps=10,
+ 
             load_best_model_at_end=True,
-
+ 
             logging_dir="artifacts/logs",
-
+ 
             report_to="none"
         )
 
