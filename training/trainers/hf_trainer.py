@@ -76,7 +76,7 @@ class HuggingFaceTrainer(BaseTrainer):
 
             output_dir="artifacts/checkpoints",
 
-            #num_train_epochs=1,
+            num_train_epochs=1,
             max_steps=10,
  
             per_device_train_batch_size=16,
@@ -172,7 +172,10 @@ class HuggingFaceTrainer(BaseTrainer):
         val_dataset.set_format( type="torch", columns=[ "input_ids", "attention_mask", "labels" ] )
 
 
-        # trainer.train()
+        take = 160  # 10 steps * 16 batch_size for quick testing
+        train_dataset = train_dataset.select(range(min(take, len(train_dataset))))
+        val_dataset   = val_dataset.select(range(min(take, len(val_dataset))))
+
         trainer = self._build_trainer( train_dataset=train_dataset, eval_dataset=val_dataset )
 
         trainer.train()
