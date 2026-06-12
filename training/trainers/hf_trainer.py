@@ -77,7 +77,7 @@ class HuggingFaceTrainer(BaseTrainer):
             output_dir="artifacts/checkpoints",
 
             num_train_epochs=1,
-            max_steps=int(os.environ.get("MAX_STEPS", "10")),
+            max_steps=10,
  
             per_device_train_batch_size=16,
  
