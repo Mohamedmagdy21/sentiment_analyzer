@@ -33,3 +33,4 @@ tqdm
 # Notebook Support
 jupyter
 ipykernel
+peft>=0.14.0
