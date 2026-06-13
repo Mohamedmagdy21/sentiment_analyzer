@@ -52,6 +52,7 @@ logs/
 
 # MLflow
 mlruns/
+mlflow.db
 
 # Jupyter
 .ipynb_checkpoints/
