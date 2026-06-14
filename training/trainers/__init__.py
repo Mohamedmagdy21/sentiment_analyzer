@@ -1,1 +1,2 @@
-from training.trainers import hf_trainer
+from training.trainers.hf_trainer import HuggingFaceTrainer
+from training.trainers.custom_loss import WeightedLossTrainer
