@@ -64,19 +64,38 @@ class AmazonPreprocessor(BaseProcessor):
         text_col = dataset_cfg.text_column
         label_col = dataset_cfg.label_column
 
-        data = data[
-            data[label_col] != 3
-        ].copy()
+        #data = data[
+        #    data[label_col] != 3
+        #].copy()
 
-        data[label_col] = (
-            data[label_col] >= 4
-        ).astype(int)
+        
+
+       # data[label_col] = (
+       #     data[label_col] >= 4
+       # ).astype(int)
+
+        data[label_col] = data[label_col].replace({
+         1: 0,
+         2: 0
+        })
+
+        data[label_col]=data[label_col].replace({3:1})
+
+        data[label_col] = data[label_col].replace({
+         4: 2,
+         5: 2
+        })
+
+
+
+
 
         stratify_col = (
             data[label_col]
             if self.stratify
             else None
         )
+        
 
         X_train, X_temp, y_train, y_temp = train_test_split(
             data[text_col],

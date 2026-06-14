@@ -3,7 +3,7 @@
 
 name: twitter
 
-raw_path: Data/raw/sent/training.1600000.processed.noemoticon.csv
+raw_path: Data/raw/twitter_raw/training.1600000.processed.noemoticon.csv
 
 processed_train_path: Data/processed/twitter/train.csv
 processed_val_path: Data/processed/twitter/val.csv
@@ -14,4 +14,4 @@ label_column: sentiment
 
 encoding: latin-1
 
-num_labels: 2
+num_labels: 3

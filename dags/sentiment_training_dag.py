@@ -123,22 +123,6 @@ def _download_artifacts(dataset_name: str, **context):
             print(f"No model directory found at {src} or {raw_model_dir}")
             print(f"Contents of tmpdir: {os.listdir(tmpdir)}")
 
-    # Download MLflow database if present
-    mlflow_src = os.path.join(tmpdir, "sentiment_analyzer", "artifacts", "mlflow.db")
-    mlflow_dst = f"{PROJECT_ROOT}/artifacts/mlflow.db"
-    if os.path.isfile(mlflow_src):
-        import shutil
-        os.makedirs(os.path.dirname(mlflow_dst), exist_ok=True)
-        shutil.copy2(mlflow_src, mlflow_dst)
-        print(f"MLflow DB moved to {mlflow_dst}")
-    else:
-        raw_mlflow = f"{tmpdir}/artifacts/mlflow.db"
-        if os.path.isfile(raw_mlflow):
-            import shutil
-            os.makedirs(os.path.dirname(mlflow_dst), exist_ok=True)
-            shutil.copy2(raw_mlflow, mlflow_dst)
-            print(f"MLflow DB moved to {mlflow_dst}")
-
     import shutil
     shutil.rmtree(tmpdir)
 

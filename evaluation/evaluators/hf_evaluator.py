@@ -2,6 +2,7 @@
 import pandas as pd
 import torch
 import mlflow
+import os
 
 from datasets import Dataset
 
@@ -24,10 +25,12 @@ class HuggingFaceEvaluator(BaseEvaluator):
 
     def __init__(
         self,
-        model_dir: str
+        model_dir: str,
+        labels_map: dict
     ):
 
         self.model_dir = model_dir
+        self.labels_map=labels_map
 
         self.model = None
         self.tokenizer = None
@@ -97,17 +100,7 @@ class HuggingFaceEvaluator(BaseEvaluator):
             predictions
         )
 
-        precision = precision_score(
-            labels,
-            predictions,
-            average="weighted"
-        )
-
-        recall = recall_score(
-            labels,
-            predictions,
-            average="weighted"
-        )
+        
 
         f1 = f1_score(
             labels,
@@ -117,10 +110,28 @@ class HuggingFaceEvaluator(BaseEvaluator):
 
         return {
             "test_accuracy": accuracy,
-            "test_precision": precision,
-            "test_recall": recall,
             "test_f1": f1
         }
+
+
+    def compute_recall_precision(self,
+        labels,
+        predictions):
+
+        precision = precision_score(
+            labels,
+            predictions,
+            average=None
+        )
+
+        recall = recall_score(
+            labels,
+            predictions,
+            average=None
+        )
+
+        return{"precision":precision,"recall":recall}
+
 
     def evaluate(
         self,
@@ -150,23 +161,36 @@ class HuggingFaceEvaluator(BaseEvaluator):
             predictions
         )
 
-        print(
-            "Evaluation Results"
+        recall_precision = self.compute_recall_precision(
+            test_df["label"].values,
+            predictions
         )
 
-        for metric, value in metrics.items():
+        results_file = os.path.join(
+            self.model_dir,
+            "evaluation_results.txt"
+        )
 
-            print(
-                f"{metric}: {value:.4f}"
-            )
+        with open(results_file, "w") as f:
+            f.write("Overall Metrics\n")
+            f.write("-----------------\n")
+            for metric, value in metrics.items():
+                f.write(f"{metric}: {value:.4f}\n")
+            f.write("\nPer-Class Metrics\n")
+            f.write("-----------------\n")
+            for class_id, class_name in self.labels_map.items():
+                f.write(
+                    f"precision_{class_name}: "
+                    f"{recall_precision['precision'][class_id]:.4f}\n"
+                )
+                f.write(
+                    f"recall_{class_name}: "
+                    f"{recall_precision['recall'][class_id]:.4f}\n"
+                )
 
-        with mlflow.start_run(
-            run_name="evaluation"
-        ):
-
-            mlflow.log_metrics(
-                metrics
-            )
+        mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000"))
+        with mlflow.start_run(run_name="evaluation"):
+            mlflow.log_metrics(metrics)
 
         return metrics
 

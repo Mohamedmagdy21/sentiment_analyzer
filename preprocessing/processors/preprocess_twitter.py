@@ -50,12 +50,18 @@ class TwitterPreprocessor(BaseProcessor):
         # 0 = Negative
         # 4 = Positive
 
-        df["sentiment"] = df["sentiment"].replace(
-            {
-                0: 0,
-                4: 1
-            }
-        )
+       # df["sentiment"] = df["sentiment"].replace(
+        #    {
+        #        0: 0,
+         #       4: 1
+         #   }
+        #)
+
+        df["sentiment"] = df["sentiment"].replace({
+         0: 0,  # negative
+         2: 1,  # neutral
+         4: 2,  # positive
+        })
 
         return df
 

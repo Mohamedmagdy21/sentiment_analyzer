@@ -4,7 +4,6 @@
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,
-    Trainer,
     TrainingArguments
 )
 from peft import (
@@ -18,12 +17,10 @@ import os
 import pandas as pd
 from datasets import Dataset
 
-from sklearn.metrics import (
-    accuracy_score,
-    precision_recall_fscore_support
-)
+from training.trainers.custom_loss import WeightedLossTrainer
+
+
 import numpy as np
-import mlflow
 
 
 
@@ -94,12 +91,12 @@ class HuggingFaceTrainer(BaseTrainer):
 
             output_dir="artifacts/checkpoints",
 
-            num_train_epochs=1,
-            max_steps=10,
+            num_train_epochs=2,
+            
  
-            per_device_train_batch_size=16,
+            per_device_train_batch_size=64,
  
-            per_device_eval_batch_size=16,
+            per_device_eval_batch_size=64,
  
             learning_rate=2e-5,
  
@@ -116,7 +113,7 @@ class HuggingFaceTrainer(BaseTrainer):
             report_to="none"
         )
 
-        trainer = Trainer(
+        trainer = WeightedLossTrainer(
             model=self.model,
             args=training_args,
             train_dataset=train_dataset,
@@ -188,49 +185,22 @@ class HuggingFaceTrainer(BaseTrainer):
         val_dataset.set_format( type="torch", columns=[ "input_ids", "attention_mask", "labels" ] )
 
 
-        take = 160  # 10 steps * 16 batch_size for quick testing
-        train_dataset = train_dataset.select(range(min(take, len(train_dataset))))
-        val_dataset   = val_dataset.select(range(min(take, len(val_dataset))))
+        trainer = self._build_trainer( train_dataset=train_dataset, eval_dataset=val_dataset )
 
-        mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000"))
-        with mlflow.start_run(run_name=self.name) as run:
-            mlflow.log_params({
-                "pretrained_model": self.pretrained_name,
-                "num_labels": self.num_labels,
-                "max_length": self.max_length,
-                "batch_size": 16,
-                "learning_rate": 2e-5,
-                "weight_decay": 0.01,
-                "max_steps": 10,
-                "lora_r": 8,
-                "lora_alpha": 16,
-                "lora_dropout": 0.1,
-                "target_modules": ["query", "key", "value", "dense"]
-            })
-            print(f"MLflow run ID: {run.info.run_id}")
+        trainer.train()
 
-            trainer = self._build_trainer( train_dataset=train_dataset, eval_dataset=val_dataset )
+        os.makedirs(
+            self.artifact_dir,
+            exist_ok=True
+        )
 
-            trainer.train()
+        trainer.save_model(
+            self.artifact_dir
+        )
 
-            mlflow.log_metrics({
-                "train_loss": trainer.state.log_history[-1].get("loss", 0) if trainer.state.log_history else 0,
-                "eval_loss": trainer.state.log_history[-1].get("eval_loss", 0) if trainer.state.log_history else 0,
-            })
-            mlflow.log_artifact(self.artifact_dir) if os.path.exists(self.artifact_dir) else None
-
-            os.makedirs(
-                self.artifact_dir,
-                exist_ok=True
-            )
-
-            trainer.save_model(
-                self.artifact_dir
-            )
-
-            self.tokenizer.save_pretrained(
-                self.artifact_dir
-            )
+        self.tokenizer.save_pretrained(
+            self.artifact_dir
+        )
 
         return trainer
 

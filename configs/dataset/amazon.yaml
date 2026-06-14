@@ -2,7 +2,7 @@
 
 name: amazon
 
-raw_path: Data/raw/archive(1)/Reviews.csv
+raw_path: Data/raw/amazon_reviews_raw/Reviews.csv
 
 processed_train_path: Data/processed/amazon/train.csv
 processed_val_path: Data/processed/amazon/val.csv
@@ -13,5 +13,5 @@ label_column: Score
 
 encoding: utf-8
 
-num_labels: 2
+num_labels: 3
 

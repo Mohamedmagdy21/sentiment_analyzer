@@ -9,7 +9,7 @@ pretrained_name: cardiffnlp/twitter-roberta-base-sentiment
 
 tokenizer_name: cardiffnlp/twitter-roberta-base-sentiment
 
-num_labels: 2
+num_labels: 3
 
 max_length: 512
 
@@ -17,5 +17,6 @@ artifact_dir: artifacts/models/twitter
 
 labels:
   0: negative
-  1: positive
+  1: neutral
+  2: positive
 
