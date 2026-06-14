@@ -110,7 +110,13 @@ class HuggingFaceTrainer(BaseTrainer):
 
             logging_dir="artifacts/logs",
  
-            report_to="none"
+            report_to="none",
+
+            no_cuda=False,
+            bf16=False,
+            fp16=False,
+            dataloader_pin_memory=False,
+            include_num_input_tokens_seen=False,
         )
 
         trainer = WeightedLossTrainer(
@@ -186,6 +192,10 @@ class HuggingFaceTrainer(BaseTrainer):
 
 
         trainer = self._build_trainer( train_dataset=train_dataset, eval_dataset=val_dataset )
+
+        import torch
+        torch.backends.cuda.matmul.allow_tf32 = False
+        torch.backends.cudnn.allow_tf32 = False
 
         trainer.train()
 

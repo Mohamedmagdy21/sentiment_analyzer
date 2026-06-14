@@ -1,3 +1,7 @@
+import os
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+os.environ["TORCH_USE_CUDA_DSA"] = "1"
+
 import hydra
 from hydra.utils import instantiate
 
