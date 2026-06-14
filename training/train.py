@@ -1,3 +1,9 @@
+import sys
+from unittest.mock import MagicMock
+
+sys.modules['torchaudio'] = MagicMock()
+sys.path.insert(0, '/kaggle/working/sentiment_analyzer')
+
 import hydra
 from hydra.utils import instantiate
 
