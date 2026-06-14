@@ -94,10 +94,12 @@ class HuggingFaceTrainer(BaseTrainer):
             num_train_epochs=2,
             
  
-            per_device_train_batch_size=64,
+            per_device_train_batch_size=4,
  
-            per_device_eval_batch_size=64,
- 
+            per_device_eval_batch_size=4,
+
+            gradient_accumulation_steps=16,
+
             learning_rate=2e-5,
  
             weight_decay=0.01,
@@ -112,9 +114,10 @@ class HuggingFaceTrainer(BaseTrainer):
  
             report_to="none",
 
-            no_cuda=False,
             bf16=False,
-            fp16=False,
+            fp16=True,
+            gradient_checkpointing=True,
+            optim="adamw_8bit",
             dataloader_pin_memory=False,
             include_num_input_tokens_seen=False,
         )
