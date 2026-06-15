@@ -29,7 +29,7 @@ def _hydra_preprocess(dataset_name: str):
         "-m",
         "preprocessing.preprocess",
         f"dataset={dataset_name}",
-        "hydra.run.dir=${original_cwd}",
+        "hydra.run.dir=.",
     ]
     if dataset_name == "amazon":
         cmd += [
@@ -68,7 +68,7 @@ def _hydra_train(dataset_name: str):
         "training.train",
         f"dataset={dataset_name}",
         model_cfg,
-        "hydra.run.dir=${original_cwd}",
+        "hydra.run.dir=.",
     ]
 
     result = subprocess.run(
@@ -105,7 +105,7 @@ def _hydra_evaluate(dataset_name: str):
         f"dataset={dataset_name}",
         model_cfg,
         f"evaluator.model_dir={model_dir}",
-        "hydra.run.dir=${original_cwd}",
+        "hydra.run.dir=.",
     ]
 
     result = subprocess.run(
