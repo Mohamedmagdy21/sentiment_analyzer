@@ -1,6 +1,5 @@
 import os
 import subprocess
-import sys
 import time
 from datetime import datetime, timedelta
 
@@ -11,7 +10,7 @@ from airflow.operators.empty import EmptyOperator
 PROJECT_ROOT = os.path.dirname(
     os.path.dirname(os.path.realpath(__file__))
 )
-PROJECT_PYTHON = os.path.join(PROJECT_ROOT, ".venv", "bin", "python3")
+PROJECT_PYTHON = os.path.join(PROJECT_ROOT, "venv_cuda", "bin", "python3")
 
 
 def _log_duration(name: str, start: float):
@@ -28,6 +27,7 @@ def _hydra_preprocess(dataset_name: str):
         "-m",
         "preprocessing.preprocess",
         f"dataset={dataset_name}",
+        "hydra.run.dir=${original_cwd}",
     ]
     if dataset_name == "amazon":
         cmd += [
@@ -55,78 +55,38 @@ def _hydra_preprocess(dataset_name: str):
     _log_duration(f"preprocessing {dataset_name}", start)
 
 
-def _push_and_wait(kernel_dir: str, **context):
+def _hydra_train(dataset_name: str):
     start = time.perf_counter()
-    dataset_name = kernel_dir.rstrip("/").split("/")[-1]
-    print(f"[TIMING] Kaggle training for {dataset_name} started")
+    print(f"[TIMING] Training {dataset_name} started")
 
-    sys.path.insert(0, PROJECT_ROOT)
+    model_cfg = f"model={dataset_name}_roberta"
+    cmd = [
+        PROJECT_PYTHON,
+        "-m",
+        "training.train",
+        f"dataset={dataset_name}",
+        model_cfg,
+        "hydra.run.dir=${original_cwd}",
+    ]
 
-    from backend.kaggle_client import KaggleClient  # noqa: PLC0415
-
-    client = KaggleClient()
-    client.push_kernel(kernel_dir)
-    client.wait_for_completion(interval=60)
-
-    context["ti"].xcom_push(
-        key="kernel_id",
-        value=client._kernel_id,
+    result = subprocess.run(
+        cmd,
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
     )
 
-    _log_duration(f"kaggle training {dataset_name}", start)
+    print(result.stdout)
+    if result.stderr:
+        print(result.stderr)
 
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Training failed for {dataset_name}\n"
+            f"STDERR: {result.stderr}"
+        )
 
-def _download_artifacts(dataset_name: str, **context):
-    start = time.perf_counter()
-    print(f"[TIMING] Download artifacts for {dataset_name} started")
-
-    sys.path.insert(0, PROJECT_ROOT)
-
-    from backend.kaggle_client import KaggleClient  # noqa: PLC0415
-
-    kernel_ref = context["ti"].xcom_pull(
-        task_ids=f"train_{dataset_name}_kaggle",
-        key="kernel_id",
-    )
-
-    client = KaggleClient()
-    client._kernel_id = kernel_ref
-
-    import tempfile
-    tmpdir = tempfile.mkdtemp(prefix=f"kaggle_{dataset_name}_")
-
-    client.download_output(kernel_ref, tmpdir)
-    client.download_log(kernel_ref, f"{PROJECT_ROOT}/artifacts/logs")
-
-    # Kaggle output nests everything under sentiment_analyzer/
-    src = os.path.join(tmpdir, "sentiment_analyzer", "artifacts", "models", dataset_name)
-    dst = f"{PROJECT_ROOT}/artifacts/models/{dataset_name}"
-
-    if os.path.isdir(src):
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        if os.path.isdir(dst):
-            import shutil
-            shutil.rmtree(dst)
-        shutil.move(src, dst)
-        print(f"Models moved to {dst}")
-    else:
-        # Try raw output as fallback
-        raw_model_dir = f"{tmpdir}/artifacts/models/{dataset_name}"
-        if os.path.isdir(raw_model_dir):
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            import shutil
-            if os.path.isdir(dst):
-                shutil.rmtree(dst)
-            shutil.move(raw_model_dir, dst)
-            print(f"Models moved to {dst}")
-        else:
-            print(f"No model directory found at {src} or {raw_model_dir}")
-            print(f"Contents of tmpdir: {os.listdir(tmpdir)}")
-
-    import shutil
-    shutil.rmtree(tmpdir)
-
-    _log_duration(f"download artifacts {dataset_name}", start)
+    _log_duration(f"training {dataset_name}", start)
 
 
 def _hydra_evaluate(dataset_name: str):
@@ -143,6 +103,7 @@ def _hydra_evaluate(dataset_name: str):
         f"dataset={dataset_name}",
         model_cfg,
         f"evaluator.model_dir={model_dir}",
+        "hydra.run.dir=${original_cwd}",
     ]
 
     result = subprocess.run(
@@ -176,7 +137,7 @@ with DAG(
     },
     description=(
         "Orchestrate Twitter and Amazon sentiment model pipelines "
-        "in parallel: preprocess, train on Kaggle GPU, download artifacts."
+        "in parallel: preprocess, train locally on GPU, evaluate."
     ),
 ) as dag:
 
@@ -194,27 +155,15 @@ with DAG(
         op_kwargs={"dataset_name": "amazon"},
     )
 
-    train_twitter_kaggle = PythonOperator(
-        task_id="train_twitter_kaggle",
-        python_callable=_push_and_wait,
-        op_kwargs={"kernel_dir": f"{PROJECT_ROOT}/kaggle/twitter_training"},
-    )
-
-    train_amazon_kaggle = PythonOperator(
-        task_id="train_amazon_kaggle",
-        python_callable=_push_and_wait,
-        op_kwargs={"kernel_dir": f"{PROJECT_ROOT}/kaggle/amazon_training"},
-    )
-
-    download_twitter_artifacts = PythonOperator(
-        task_id="download_twitter_artifacts",
-        python_callable=_download_artifacts,
+    train_twitter = PythonOperator(
+        task_id="train_twitter",
+        python_callable=_hydra_train,
         op_kwargs={"dataset_name": "twitter"},
     )
 
-    download_amazon_artifacts = PythonOperator(
-        task_id="download_amazon_artifacts",
-        python_callable=_download_artifacts,
+    train_amazon = PythonOperator(
+        task_id="train_amazon",
+        python_callable=_hydra_train,
         op_kwargs={"dataset_name": "amazon"},
     )
 
@@ -234,7 +183,7 @@ with DAG(
 
     start >> [preprocess_twitter, preprocess_amazon]
 
-    preprocess_twitter >> train_twitter_kaggle >> download_twitter_artifacts >> evaluate_twitter
-    preprocess_amazon >> train_amazon_kaggle >> download_amazon_artifacts >> evaluate_amazon
+    preprocess_twitter >> train_twitter >> evaluate_twitter
+    preprocess_amazon >> train_amazon >> evaluate_amazon
 
     [evaluate_twitter, evaluate_amazon] >> end
