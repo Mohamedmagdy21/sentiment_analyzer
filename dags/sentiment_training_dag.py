@@ -146,6 +146,10 @@ with DAG(
         op_kwargs={"dataset_name": "amazon"},
     )
 
+    # Gate: ensures train_twitter fires only once
+    # after BOTH preprocessing tasks complete
+    preprocessing_done = EmptyOperator(task_id="preprocessing_done")
+
     train_twitter = PythonOperator(
         task_id="train_twitter",
         python_callable=_hydra_train,
@@ -177,9 +181,12 @@ with DAG(
     # Preprocessing runs in parallel (CPU-only)
     start >> [preprocess_twitter, preprocess_amazon]
 
-    # Training is serialized to avoid GPU OOM (4GB VRAM)
-    preprocess_twitter >> train_twitter
-    preprocess_amazon >> train_twitter
+    # Gate ensures train_twitter fires only once
+    preprocess_twitter >> preprocessing_done
+    preprocess_amazon >> preprocessing_done
+
+    # Training serialized to avoid GPU OOM (4GB VRAM)
+    preprocessing_done >> train_twitter
     train_twitter >> train_amazon
 
     # Evaluation each right after its training finishes
