@@ -3,6 +3,8 @@ import subprocess
 import time
 from datetime import datetime, timedelta
 
+TRAIN_TIMEOUT = timedelta(hours=2)
+
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.empty import EmptyOperator
@@ -159,12 +161,14 @@ with DAG(
         task_id="train_twitter",
         python_callable=_hydra_train,
         op_kwargs={"dataset_name": "twitter"},
+        execution_timeout=TRAIN_TIMEOUT,
     )
 
     train_amazon = PythonOperator(
         task_id="train_amazon",
         python_callable=_hydra_train,
         op_kwargs={"dataset_name": "amazon"},
+        execution_timeout=TRAIN_TIMEOUT,
     )
 
     evaluate_twitter = PythonOperator(
@@ -181,9 +185,16 @@ with DAG(
 
     end = EmptyOperator(task_id="end")
 
+    # Preprocessing runs in parallel (CPU-only)
     start >> [preprocess_twitter, preprocess_amazon]
 
-    preprocess_twitter >> train_twitter >> evaluate_twitter
-    preprocess_amazon >> train_amazon >> evaluate_amazon
+    # Training is serialized to avoid GPU OOM (4GB VRAM)
+    preprocess_twitter >> train_twitter
+    preprocess_amazon >> train_twitter
+    train_twitter >> train_amazon
 
-    [evaluate_twitter, evaluate_amazon] >> end
+    # Evaluation each right after its training finishes
+    train_twitter >> evaluate_twitter
+    train_amazon >> evaluate_amazon
+
+    end << [evaluate_twitter, evaluate_amazon]
