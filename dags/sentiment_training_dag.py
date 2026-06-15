@@ -20,6 +20,22 @@ def _log_duration(name: str, start: float):
     print(f"[TIMING] {name} completed in {elapsed:.2f}s")
 
 
+def _stream_subprocess(cmd, cwd):
+    """Run subprocess streaming output live to Airflow logs."""
+    process = subprocess.Popen(
+        cmd,
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+    for line in process.stdout:
+        print(line, end="")
+    process.wait()
+    return process.returncode
+
+
 def _hydra_preprocess(dataset_name: str):
     start = time.perf_counter()
     print(f"[TIMING] Preprocessing {dataset_name} started")
@@ -37,17 +53,10 @@ def _hydra_preprocess(dataset_name: str):
             "model=amazon_roberta",
         ]
 
-    result = subprocess.run(
-        cmd,
-        cwd=PROJECT_ROOT,
-        capture_output=False,
-        text=True,
-    )
+    rc = _stream_subprocess(cmd, PROJECT_ROOT)
 
-    if result.returncode != 0:
-        raise RuntimeError(
-            f"Preprocessing failed for {dataset_name} (rc={result.returncode})"
-        )
+    if rc != 0:
+        raise RuntimeError(f"Preprocessing failed for {dataset_name} (rc={rc})")
 
     _log_duration(f"preprocessing {dataset_name}", start)
 
@@ -66,17 +75,10 @@ def _hydra_train(dataset_name: str):
         "hydra.run.dir=.",
     ]
 
-    result = subprocess.run(
-        cmd,
-        cwd=PROJECT_ROOT,
-        capture_output=False,
-        text=True,
-    )
+    rc = _stream_subprocess(cmd, PROJECT_ROOT)
 
-    if result.returncode != 0:
-        raise RuntimeError(
-            f"Training failed for {dataset_name} (rc={result.returncode})"
-        )
+    if rc != 0:
+        raise RuntimeError(f"Training failed for {dataset_name} (rc={rc})")
 
     _log_duration(f"training {dataset_name}", start)
 
@@ -98,17 +100,10 @@ def _hydra_evaluate(dataset_name: str):
         "hydra.run.dir=.",
     ]
 
-    result = subprocess.run(
-        cmd,
-        cwd=PROJECT_ROOT,
-        capture_output=False,
-        text=True,
-    )
+    rc = _stream_subprocess(cmd, PROJECT_ROOT)
 
-    if result.returncode != 0:
-        raise RuntimeError(
-            f"Evaluation failed for {dataset_name} (rc={result.returncode})"
-        )
+    if rc != 0:
+        raise RuntimeError(f"Evaluation failed for {dataset_name} (rc={rc})")
 
     _log_duration(f"evaluation {dataset_name}", start)
 
