@@ -6,8 +6,8 @@ from datetime import datetime, timedelta
 TRAIN_TIMEOUT = timedelta(hours=2)
 
 from airflow import DAG
-from airflow.operators.python import PythonOperator
-from airflow.operators.empty import EmptyOperator
+from airflow.providers.standard.operators.python import PythonOperator
+from airflow.providers.standard.operators.empty import EmptyOperator
 
 PROJECT_ROOT = os.path.dirname(
     os.path.dirname(os.path.realpath(__file__))
