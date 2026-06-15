@@ -92,26 +92,26 @@ class HuggingFaceTrainer(BaseTrainer):
             output_dir="artifacts/checkpoints",
 
             num_train_epochs=2,
-            
- 
+            max_steps=40000,
+
             per_device_train_batch_size=4,
- 
+
             per_device_eval_batch_size=4,
 
             gradient_accumulation_steps=16,
 
             learning_rate=2e-5,
- 
+
             weight_decay=0.01,
- 
+
             eval_strategy="steps",
             eval_steps=10,
- 
+
             save_strategy="steps",
             save_steps=10,
 
             logging_dir="artifacts/logs",
- 
+
             report_to="none",
 
             bf16=False,
@@ -121,6 +121,7 @@ class HuggingFaceTrainer(BaseTrainer):
             dataloader_pin_memory=True,
             dataloader_num_workers=2,
             include_num_input_tokens_seen=False,
+            resume_from_checkpoint=False,
         )
 
         trainer = WeightedLossTrainer(
@@ -201,7 +202,9 @@ class HuggingFaceTrainer(BaseTrainer):
         torch.backends.cuda.matmul.allow_tf32 = False
         torch.backends.cudnn.allow_tf32 = False
 
+        print("[TRAIN_CALL] Starting trainer.train()")
         trainer.train()
+        print("[TRAIN_CALL] trainer.train() completed")
 
         os.makedirs(
             self.artifact_dir,
