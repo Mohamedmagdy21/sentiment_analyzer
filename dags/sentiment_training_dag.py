@@ -62,6 +62,14 @@ def _hydra_preprocess(dataset_name: str):
 
 
 def _hydra_train(dataset_name: str):
+    import shutil
+
+    # Clear Hydra's saved state from previous runs
+    hydra_dir = os.path.join(PROJECT_ROOT, ".hydra")
+    if os.path.exists(hydra_dir):
+        shutil.rmtree(hydra_dir)
+        print(f"[INFO] Cleared .hydra dir")
+
     start = time.perf_counter()
     print(f"[TIMING] Training {dataset_name} started")
 
@@ -73,6 +81,7 @@ def _hydra_train(dataset_name: str):
         f"dataset={dataset_name}",
         model_cfg,
         "hydra.run.dir=.",
+        "--config-dir", os.path.join(PROJECT_ROOT, "configs"),
     ]
 
     rc = _stream_subprocess(cmd, PROJECT_ROOT)
