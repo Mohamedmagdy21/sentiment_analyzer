@@ -118,7 +118,8 @@ class HuggingFaceTrainer(BaseTrainer):
             fp16=True,
             gradient_checkpointing=True,
             optim="adamw_8bit",
-            dataloader_pin_memory=False,
+            dataloader_pin_memory=True,
+            dataloader_num_workers=2,
             include_num_input_tokens_seen=False,
         )
 

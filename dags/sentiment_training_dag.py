@@ -40,18 +40,13 @@ def _hydra_preprocess(dataset_name: str):
     result = subprocess.run(
         cmd,
         cwd=PROJECT_ROOT,
-        capture_output=True,
+        capture_output=False,
         text=True,
     )
 
-    print(result.stdout)
-    if result.stderr:
-        print(result.stderr)
-
     if result.returncode != 0:
         raise RuntimeError(
-            f"Preprocessing failed for {dataset_name}\n"
-            f"STDERR: {result.stderr}"
+            f"Preprocessing failed for {dataset_name} (rc={result.returncode})"
         )
 
     _log_duration(f"preprocessing {dataset_name}", start)
@@ -74,18 +69,13 @@ def _hydra_train(dataset_name: str):
     result = subprocess.run(
         cmd,
         cwd=PROJECT_ROOT,
-        capture_output=True,
+        capture_output=False,
         text=True,
     )
 
-    print(result.stdout)
-    if result.stderr:
-        print(result.stderr)
-
     if result.returncode != 0:
         raise RuntimeError(
-            f"Training failed for {dataset_name}\n"
-            f"STDERR: {result.stderr}"
+            f"Training failed for {dataset_name} (rc={result.returncode})"
         )
 
     _log_duration(f"training {dataset_name}", start)
@@ -111,18 +101,13 @@ def _hydra_evaluate(dataset_name: str):
     result = subprocess.run(
         cmd,
         cwd=PROJECT_ROOT,
-        capture_output=True,
+        capture_output=False,
         text=True,
     )
 
-    print(result.stdout)
-    if result.stderr:
-        print(result.stderr)
-
     if result.returncode != 0:
         raise RuntimeError(
-            f"Evaluation failed for {dataset_name}\n"
-            f"STDERR: {result.stderr}"
+            f"Evaluation failed for {dataset_name} (rc={result.returncode})"
         )
 
     _log_duration(f"evaluation {dataset_name}", start)
