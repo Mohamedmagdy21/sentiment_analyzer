@@ -57,7 +57,9 @@ class AmazonPreprocessor(BaseProcessor):
 
         df = df.dropna()
 
-        return df
+        df_org=df.copy()
+
+        return df_org
 
     def preprocess_data(self, data,dataset_cfg):
 
@@ -114,7 +116,7 @@ class AmazonPreprocessor(BaseProcessor):
         X_val, X_test, y_val, y_test = train_test_split(
             X_temp,
             y_temp,
-            test_size=0.5,
+            test_size=0.99,
             random_state=self.random_state,
             stratify=stratify_temp
         )

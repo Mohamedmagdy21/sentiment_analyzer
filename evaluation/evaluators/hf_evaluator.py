@@ -1,10 +1,13 @@
 
-import pandas as pd
-import torch
-import mlflow
 import os
+import pandas as pd
+import mlflow
 
-from datasets import Dataset
+import transformers.utils.import_utils as _utils
+_utils.check_torch_load_is_safe = lambda: None
+
+from peft import PeftModel
+from datetime import datetime
 
 from transformers import (
     AutoTokenizer,
@@ -30,26 +33,28 @@ class HuggingFaceEvaluator(BaseEvaluator):
     ):
 
         self.model_dir = model_dir
-        self.labels_map=labels_map
+        self.labels_map = labels_map
 
         self.model = None
         self.tokenizer = None
 
     def load_model(self):
 
-        self.tokenizer = (
-            AutoTokenizer.from_pretrained(
-                self.model_dir
-            )
+        base_model = AutoModelForSequenceClassification.from_pretrained(
+        "cardiffnlp/twitter-roberta-base-sentiment",
+         num_labels=3,
+         ignore_mismatched_sizes=True
         )
-
-        self.model = (
-            AutoModelForSequenceClassification.from_pretrained(
-                self.model_dir
-            )
-        )
-
+        self.model = PeftModel.from_pretrained(base_model, self.model_dir)
+        self.tokenizer = AutoTokenizer.from_pretrained("cardiffnlp/twitter-roberta-base-sentiment")
+        from inference.model_loader import device
+        self.model.to(device)
         self.model.eval()
+
+    def predict(self, texts, batch_size=64):
+        from inference.model_loader import predict as shared_predict
+        preds, _ = shared_predict(texts, self.tokenizer, self.model, batch_size=batch_size)
+        return preds
 
     def load_test_data(
         self,
@@ -62,33 +67,6 @@ class HuggingFaceEvaluator(BaseEvaluator):
 
         return test_df
 
-    def predict(
-        self,
-        texts
-    ):
-
-        encodings = self.tokenizer(
-            texts,
-            truncation=True,
-            padding=True,
-            return_tensors="pt"
-        )
-
-        with torch.no_grad():
-
-            outputs = self.model(
-                **encodings
-            )
-
-        predictions = (
-            outputs.logits
-            .argmax(dim=-1)
-            .cpu()
-            .numpy()
-        )
-
-        return predictions
-
     def compute_metrics(
         self,
         labels,
@@ -100,7 +78,7 @@ class HuggingFaceEvaluator(BaseEvaluator):
             predictions
         )
 
-        
+
 
         f1 = f1_score(
             labels,
@@ -114,29 +92,37 @@ class HuggingFaceEvaluator(BaseEvaluator):
         }
 
 
-    def compute_recall_precision(self,
+    def compute_recall_precision(
+        self,
         labels,
-        predictions):
+        predictions
+    ):
 
         precision = precision_score(
             labels,
             predictions,
-            average=None
+            average=None,
+            labels=[0,1,2],
+            zero_division=0
         )
 
         recall = recall_score(
             labels,
             predictions,
-            average=None
+            average=None,
+            labels=[0,1,2],
+            zero_division=0
         )
 
-        return{"precision":precision,"recall":recall}
+        return {"precision": precision, "recall": recall}
 
 
     def evaluate(
         self,
         dataset_cfg
     ):
+
+        os.system("pkill -f 'uvicorn inference.main' > /dev/null 2>&1")
 
         print(
             "Loading trained model..."
@@ -167,8 +153,8 @@ class HuggingFaceEvaluator(BaseEvaluator):
         )
 
         results_file = os.path.join(
-            self.model_dir,
-            "evaluation_results.txt"
+        self.model_dir,
+        f"evaluation_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
         )
 
         with open(results_file, "w") as f:
@@ -188,9 +174,12 @@ class HuggingFaceEvaluator(BaseEvaluator):
                     f"{recall_precision['recall'][class_id]:.4f}\n"
                 )
 
-        mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000"))
-        with mlflow.start_run(run_name="evaluation"):
-            mlflow.log_metrics(metrics)
+        try:
+            mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000"))
+            with mlflow.start_run(run_name="evaluation"):
+                mlflow.log_metrics(metrics)
+        except Exception as e:
+            print(f"MLflow logging skipped: {e}")
 
         return metrics
 

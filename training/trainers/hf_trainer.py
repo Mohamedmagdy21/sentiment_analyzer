@@ -88,42 +88,30 @@ class HuggingFaceTrainer(BaseTrainer):
     ):
 
         training_args = TrainingArguments(
-
-            output_dir="artifacts/checkpoints",
-
-            num_train_epochs=2,
-            max_steps=40000,
-
-            per_device_train_batch_size=4,
-
-            per_device_eval_batch_size=4,
-
-            gradient_accumulation_steps=16,
-
-            learning_rate=2e-5,
-
-            weight_decay=0.01,
-
-            eval_strategy="steps",
-            eval_steps=10,
-
-            save_strategy="steps",
-            save_steps=10,
-
-            logging_dir="artifacts/logs",
-
-            report_to="none",
-
-            bf16=False,
-            fp16=True,
-            gradient_checkpointing=True,
-            optim="adamw_8bit",
-            dataloader_pin_memory=True,
-            dataloader_num_workers=2,
-            include_num_input_tokens_seen=False,
-            resume_from_checkpoint=False,
+         output_dir="artifacts/checkpoints",
+         #max_steps=10,
+         num_train_epochs=1,
+        per_device_train_batch_size=4,
+        per_device_eval_batch_size=4,
+        gradient_accumulation_steps=16,
+        learning_rate=2e-5,
+        weight_decay=0.01,
+        #eval_strategy="epoch",
+        #eval_steps=10,
+        #save_strategy="epoch",
+        #save_steps=10,
+        save_strategy="steps",
+        save_steps=100,
+        logging_dir="artifacts/logs",
+        report_to="none",
+        bf16=False,
+        fp16=True,
+        gradient_checkpointing=True,
+        optim="adamw_8bit",
+        dataloader_pin_memory=True,
+        dataloader_num_workers=2,
+        include_num_input_tokens_seen=False,
         )
-
         trainer = WeightedLossTrainer(
             model=self.model,
             args=training_args,
@@ -203,9 +191,8 @@ class HuggingFaceTrainer(BaseTrainer):
         torch.backends.cudnn.allow_tf32 = False
 
         print("[TRAIN_CALL] Starting trainer.train()")
-        trainer.train()
+        trainer.train(resume_from_checkpoint=False)
         print("[TRAIN_CALL] trainer.train() completed")
-
         os.makedirs(
             self.artifact_dir,
             exist_ok=True

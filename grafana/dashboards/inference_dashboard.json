@@ -1,0 +1,78 @@
+{
+  "title": "Sentiment Inference Dashboard",
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Inference View — Last Run",
+      "type": "barchart",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "stacking": { "mode": "none" } },
+          "color": { "mode": "fixed" }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "positive" }, "properties": [{ "id": "color", "value": { "fixed": "green" } }] },
+          { "matcher": { "id": "byName", "options": "negative" }, "properties": [{ "id": "color", "value": { "fixed": "red" } }] },
+          { "matcher": { "id": "byName", "options": "neutral" }, "properties": [{ "id": "color", "value": { "fixed": "orange" } }] }
+        ]
+      },
+      "targets": [
+        { "expr": "inference_view{sentiment=\"positive\"}", "legendFormat": "positive" },
+        { "expr": "inference_view{sentiment=\"negative\"}", "legendFormat": "negative" },
+        { "expr": "inference_view{sentiment=\"neutral\"}", "legendFormat": "neutral" }
+      ]
+    },
+    {
+      "title": "Accumulation View — Rolling 91-Day",
+      "type": "barchart",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "stacking": { "mode": "none" } },
+          "color": { "mode": "fixed" }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "positive" }, "properties": [{ "id": "color", "value": { "fixed": "green" } }] },
+          { "matcher": { "id": "byName", "options": "negative" }, "properties": [{ "id": "color", "value": { "fixed": "red" } }] },
+          { "matcher": { "id": "byName", "options": "neutral" }, "properties": [{ "id": "color", "value": { "fixed": "orange" } }] }
+        ]
+      },
+      "targets": [
+        { "expr": "accumulation_view{sentiment=\"positive\"}", "legendFormat": "positive" },
+        { "expr": "accumulation_view{sentiment=\"negative\"}", "legendFormat": "negative" },
+        { "expr": "accumulation_view{sentiment=\"neutral\"}", "legendFormat": "neutral" }
+      ]
+    },
+    {
+      "title": "Memory View — Archived (last 10)",
+      "type": "barchart",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "stacking": { "mode": "none" } },
+          "color": { "mode": "fixed" }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "positive" }, "properties": [{ "id": "color", "value": { "fixed": "green" } }] },
+          { "matcher": { "id": "byName", "options": "negative" }, "properties": [{ "id": "color", "value": { "fixed": "red" } }] },
+          { "matcher": { "id": "byName", "options": "neutral" }, "properties": [{ "id": "color", "value": { "fixed": "orange" } }] }
+        ]
+      },
+      "targets": [
+        { "expr": "memory_view{sentiment=\"positive\"}", "legendFormat": "positive" },
+        { "expr": "memory_view{sentiment=\"negative\"}", "legendFormat": "negative" },
+        { "expr": "memory_view{sentiment=\"neutral\"}", "legendFormat": "neutral" }
+      ]
+    },
+    {
+      "title": "Inference Latency (p95)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(inference_latency_seconds_bucket[5m])) by (le))", "legendFormat": "p95" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    }
+  ]
+}

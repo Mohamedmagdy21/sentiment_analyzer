@@ -45,6 +45,8 @@ Data/processed/
 # Models
 artifacts/models/
 artifacts/checkpoints/
+artifacts/metrics_lifecycle/
+prometheus/data/
 
 # Logs
 artifacts/logs/
@@ -81,3 +83,15 @@ airflow311/
 .hydra/
 preprocess.log
 train.log
+
+tunnel.ipynb
+
+# Node
+node_modules/
+package-lock.json
+package.json
+
+# Test artifacts
+test_reviews.csv
+test_ui.mjs
+test-results/

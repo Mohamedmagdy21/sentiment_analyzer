@@ -19,7 +19,7 @@ class WeightedLossTrainer(Trainer):
         logits = outputs.logits
 
         weights = torch.tensor(
-            [3.0, 1.0, 1.0],  # Neg, Neutral, Positive
+            [1.1, 1.0, 1.0],  # Neg, Neutral, Positive
             device=logits.device
         )
 

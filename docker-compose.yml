@@ -1,0 +1,42 @@
+services:
+  inference:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./artifacts/models:/app/artifacts/models
+      - ./inference:/app/inference
+      - ./configs:/app/configs
+      - ./artifacts/metrics_lifecycle:/app/artifacts/metrics_lifecycle
+      - ./artifacts/inference_logs:/app/artifacts/inference_logs
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+    restart: unless-stopped
