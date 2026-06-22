@@ -1,8 +1,8 @@
-# Brand Mood Ring
+# Read the Room
 
 Know what your customers are feeling — before they churn.
 
-![Brand Mood Ring UI](ui_hero.png)
+![Read the Room UI](ui_hero.png)
 
 Every review, support ticket, and social mention is a signal that most businesses ignore until the quarterly report. This project turns those signals into real-time sentiment data and — more importantly — **tells you when the way people talk about your brand has shifted**, so you can adapt before your engagement metrics do.
 
@@ -16,85 +16,69 @@ Language evolves. Internet culture redefines words overnight. "Sick" meant disgu
 
 This project is built around three principles:
 
-### 1. Cost efficient
+### Cost efficient
 Open-source **RoBERTa** runs on a 4 GB GPU. All fine-tuning uses **LoRA adapters** — megabytes instead of gigabytes, minutes instead of hours. The base model stays in memory permanently; only the tiny adapter gets swapped.
 
-### 2. Plug-in / plug-out
+### Plug-in / plug-out
 Change `pretrained_name` in one YAML file and the entire project rewires itself — preprocessing, inference, embedding extraction for drift. Drop an `adapter_config.json` into the models folder and the server picks it up on restart. Delete it and it falls back to the base model. No code changes.
 
-### 3. Monitoring or it didn't happen
+### Monitoring or it didn't happen
 Four drift signals run continuously. When any crosses the alert threshold, a card turns red in the dashboard and you know it is time to retrain — not because a calendar told you to, but because the data did.
 
 ---
 
-## The UI — what does what
+## The UI
 
 ### Classify + Cache
+Upload a CSV with a `text` column. Every row runs through a two-model ensemble (reviews + social media). Results stream back with sentiment, confidence, and which model decided. Re-upload the same file and results load instantly from cache.
 
-Upload a CSV with a `text` column. Every row runs through a two-model ensemble (one trained on reviews, one on social media). Results stream back with sentiment, confidence, and which model decided.
+### Three chart views
 
-The UI caches the last upload by file hash. Re-upload the same file and results load instantly — no redundant inference.
-
-### Three chart views — why each exists
-
-The bar chart shows positive / neutral / negative counts across three views:
-
-| View | Resets | Why it exists |
+| View | Resets | Why |
 |---|---|---|
-| **Inference** | Every new upload | You just ran a batch. See what the model thinks, right now. |
-| **Accumulation** | Every quarter (configurable) | This is the quarter so far. Use it mid-quarter to spot trends and adjust campaigns, support staffing, or product messaging — not after the quarter ends. |
-| **Memory** | Never (grows) | Last quarter's data lives here. Compare Q3 vs Q4. Did a pricing change shift sentiment? Did the new feature launch actually improve things? |
+| **Inference** | Every new upload | See what the model thinks right now. |
+| **Accumulation** | Every quarter | Spot trends mid-quarter — adjust campaigns, staffing, or messaging before the quarter ends. |
+| **Memory** | Never | Compare last quarter to this one. Did that pricing change help? Did the feature launch shift sentiment? |
 
-**Business logic:** Accumulation is your canary. Memory is your history book. Together they turn sentiment from a lagging KPI into a leading one.
+Accumulation is your canary. Memory is your history book. Together they make sentiment a leading indicator, not a lagging one.
 
 ### System metrics
-
-Three numbers under the chart:
-
-- **Avg Latency** — milliseconds per classification. If this creeps up, the model might need optimization or the hardware is bottlenecked.
-- **Predictions** — total since server start. Usage tracking.
-- **Avg Confidence** — mean model confidence. If it drops over time, the model is seeing data it is less sure about — a leading drift indicator before PSI confirms it.
+- **Avg Latency** — ms per classification. Creep = bottleneck.
+- **Predictions** — total since server start.
+- **Avg Confidence** — dropping mean confidence is a leading drift signal, before PSI confirms it.
 
 ### Model Drift Risk
 
-Four cards at the bottom right. Each shows a PSI (Population Stability Index) value — a statistical measure of how much a distribution has shifted from training to now:
+Four cards at the bottom right. PSI (Population Stability Index) measures how much a distribution has shifted from training to now:
 
 | Card | What it measures | If it turns red |
 |---|---|---|
-| **Data Drift** | Text length distribution | Customers changed how they write (shorter reviews, longer tickets). May need preprocessing adjustments or a new data sample. |
-| **Prediction Drift** | Model confidence distribution | The model is more (or less) confident than it was. Something about the incoming data is unfamiliar. |
-| **Target Drift** | Sentiment label distribution | The mix of positive/neutral/negative has shifted. Customers are genuinely changing how they feel. |
-| **Semantic Drift** | Embedding distribution (PCA + KMeans → PSI) | The *words people use* are changing. "Sick" started meaning cool. The model is blind to this. This card is your earliest warning. |
+| **Data Drift** | Text length distribution | Customers changed how they write. May need a new data sample. |
+| **Prediction Drift** | Confidence distribution | The model is seeing unfamiliar inputs. |
+| **Target Drift** | Sentiment label mix | Customers are genuinely changing how they feel. |
+| **Semantic Drift** | Word choice distribution (PCA + KMeans → PSI) | The *words people use* are changing. This is your earliest warning — "sick" now means cool and the model has no idea. |
 
-PSI is unbounded. The risk color gradient is: **low < 0.1 → medium < 0.2 → high < 0.3 → critical ≥ 0.3**. The **alert threshold is PSI ≥ 0.25** — any card hitting that is your signal to collect fresh data and trigger a LoRA retraining run.
+PSI is unbounded. Risk levels: **low < 0.1 → medium < 0.2 → high < 0.3 → critical ≥ 0.3**. Alert threshold is **PSI ≥ 0.25**.
 
-> A red drift card does not mean the model is broken. It means the world moved, and the model hasn't. That is a much cheaper problem to fix.
+> A red drift card does not mean the model is broken. It means the world moved, and the model hasn't.
 
 ---
 
 ## Architecture
 
 ```
-Airflow DAGs
-  Base Pipeline (schedule) ──► artifacts/models/<name>/
-                                    ├── adapter (LoRA)
-  PEFT Training (manual)    ──►    └── monitoring/ baselines
-                                          ├── data_drift_baseline.json
-                                          ├── prediction_drift_baseline.json
-                                          ├── target_drift_baseline.json
-                                          ├── semantic_pca.pkl + kmeans.pkl
-                                          └── semantic_expected.npy
-                                            │
-FastAPI Server                   ◄──────────┘
-  /predict ─► decision_engine ─► predictions.jsonl ─► PSI computation
-  /drift/metrics ─► Prometheus gauges ─► Grafana dashboard
-  /lifecycle/metrics ─► accumulation + memory windows
+Base DAG (scheduled) ──► artifacts/models/<name>/monitoring/
+PEFT DAG (manual)    ──►   ├── data_drift_baseline.json
+                            ├── prediction_drift_baseline.json
+                            ├── target_drift_baseline.json
+                            ├── semantic_pca.pkl + kmeans.pkl
+                            └── semantic_expected.npy
+                              │
+FastAPI Server               │
+  /predict ─► predictions.jsonl ─► PSI ─► Prometheus ─► Grafana
+  /drift/metrics
+  /lifecycle/metrics ─► accumulation + memory
 ```
-
-| DAG | Trigger | What it does |
-|---|---|---|
-| `base_model_dag` | Schedule | Preprocess → evaluate base model → generate semantic baselines |
-| `peft_training` | Manual (from drift alert) | Train LoRA adapter → evaluate → generate all baselines → deploy |
 
 ---
 
@@ -113,12 +97,49 @@ python3 -m preprocessing.preprocess dataset=amazon
 # Evaluate base model
 python3 -m evaluation.evaluate dataset=twitter model=twitter_roberta evaluator.use_peft=False
 
-# Generate baselines (see README quick-start section for full command)
-# Then:
+# Generate monitoring baselines (data drift, target drift, prediction drift)
+python3 -c "
+from inference.monitoring_utils import generate_and_save_baselines
+from inference.model_loader import predict
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import pandas as pd, torch, numpy as np
+for name in ['twitter', 'amazon']:
+    train_df = pd.read_csv(f'Data/processed/{name}/train.csv')
+    val_df = pd.read_csv(f'Data/processed/{name}/val.csv')
+    tokenizer = AutoTokenizer.from_pretrained('cardiffnlp/twitter-roberta-base-sentiment')
+    model = AutoModelForSequenceClassification.from_pretrained(
+        'cardiffnlp/twitter-roberta-base-sentiment', num_labels=3, ignore_mismatched_sizes=True
+    ).to('cuda' if torch.cuda.is_available() else 'cpu')
+    model.eval()
+    _, probs = predict(val_df['text'].dropna().astype(str).tolist(), tokenizer, model, batch_size=16)
+    generate_and_save_baselines(name, train_df, val_df, target_col='label', val_confidences=probs.max(axis=1))
+    del model; torch.cuda.empty_cache()
+"
+
+# Generate semantic baselines (embedding drift)
+PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python3 -c "
+from inference.semantic_monitoring_utils import fit_semantic_baseline
+import pandas as pd
+for name in ['twitter', 'amazon']:
+    df = pd.read_csv(f'Data/processed/{name}/train.csv')
+    texts = df['text'].dropna().astype(str).tolist()
+    fit_semantic_baseline(name, texts, labels=df['label'].values if 'label' in df.columns else None)
+"
+
+# Start the stack
 docker compose up -d
 ```
 
 Open `http://localhost:8000`, upload a CSV, click **Classify CSV**.
+
+### Drift verification
+
+```bash
+python3 scripts/production_drift_job.py
+python3 scripts/production_semantic_drift_job.py
+```
+
+The drift cards populate at the bottom of the UI.
 
 ---
 
@@ -142,8 +163,8 @@ Restart the container and the server picks up the LoRA adapter automatically.
 ├── training/               # LoRA fine-tuning
 ├── evaluation/             # Model evaluation (with/without PEFT)
 ├── preprocessing/          # Text cleaning + train/val/test split
-├── scripts/                # Production drift jobs (24h cron)
-├── Data/                   # Raw (DVC) + processed CSVs
+├── scripts/                # Production drift jobs
+├── Data/                   # Raw + processed CSVs
 ├── docker-compose.yml
 └── prometheus/             # Alert rules
 ```
