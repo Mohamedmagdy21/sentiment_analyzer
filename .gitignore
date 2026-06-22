@@ -1,4 +1,3 @@
-```gitignore
 # Python
 __pycache__/
 *.pyc
@@ -25,6 +24,7 @@ Data/processed/**
 
 # Virtual Environments
 venv/
+venv_cuda/
 .venv/
 env/
 
@@ -42,10 +42,8 @@ multirun/
 Data/raw/
 Data/processed/
 
-# Models
-artifacts/models/
-artifacts/checkpoints/
-artifacts/metrics_lifecycle/
+# Models / Artifacts
+artifacts/
 prometheus/data/
 
 # Logs
@@ -77,12 +75,19 @@ airflow-webserver.pid
 # Coverage
 .coverage
 htmlcov/
-```
+
+# Kaggle
 kaggle/*_processed/*.csv
 airflow311/
 .hydra/
 preprocess.log
 train.log
+
+# Nested project duplicate (accidental recursive copy)
+sentiment_analyzer/
+
+# Kaggle download artifacts
+downloads/
 
 tunnel.ipynb
 
@@ -91,7 +96,12 @@ node_modules/
 package-lock.json
 package.json
 
-# Test artifacts
+# Generated data
+test_sample_1000.csv
 test_reviews.csv
 test_ui.mjs
 test-results/
+colab_data.zip
+
+# Notebooks (personal exploration, not project code)
+colab_training.ipynb

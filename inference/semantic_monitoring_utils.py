@@ -5,7 +5,7 @@ import torch
 from transformers import AutoModel, AutoTokenizer
 from sklearn.cluster import KMeans
 from sklearn.model_selection import StratifiedShuffleSplit
-import umap
+from sklearn.decomposition import PCA
 
 from inference.monitoring_utils import calculate_psi
 
@@ -33,7 +33,7 @@ def get_frozen_base(model_name):
     return _frozen_cache[key]
 
 
-def extract_embeddings(texts, tokenizer, model, batch_size=64):
+def extract_embeddings(texts, tokenizer, model, batch_size=16):
     all_embeddings = []
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i + batch_size]
@@ -79,8 +79,8 @@ def fit_semantic_baseline(model_name, texts, labels=None,
     embeddings = extract_embeddings(sample, tokenizer, model)
     print(f"  [{model_name}] extracted {embeddings.shape[0]} x {embeddings.shape[1]} embeddings")
 
-    effective_c = min(n_components, embeddings.shape[1], embeddings.shape[0] - 1)
-    reducer = umap.UMAP(n_components=effective_c, random_state=42)
+    effective_c = min(n_components, embeddings.shape[1], embeddings.shape[0])
+    reducer = PCA(n_components=effective_c, random_state=42)
     reduced = reducer.fit_transform(embeddings)
 
     effective_k = min(n_clusters, reduced.shape[0])
@@ -96,7 +96,7 @@ def fit_semantic_baseline(model_name, texts, labels=None,
         expected=expected,
     )
 
-    with open(os.path.join(save_dir, "semantic_umap.pkl"), "wb") as f:
+    with open(os.path.join(save_dir, "semantic_pca.pkl"), "wb") as f:
         pickle.dump(reducer, f)
 
     with open(os.path.join(save_dir, "semantic_kmeans.pkl"), "wb") as f:
@@ -118,13 +118,13 @@ def load_semantic_baseline(model_name, base_dir="artifacts/models"):
     return None
 
 
-def _load_umap_kmeans(model_name, base_dir="artifacts/models"):
+def _load_pca_kmeans(model_name, base_dir="artifacts/models"):
     load_dir = os.path.join(project_root, base_dir, model_name, "monitoring")
-    umap_path = os.path.join(load_dir, "semantic_umap.pkl")
+    pca_path = os.path.join(load_dir, "semantic_pca.pkl")
     kmeans_path = os.path.join(load_dir, "semantic_kmeans.pkl")
-    if not os.path.exists(umap_path) or not os.path.exists(kmeans_path):
+    if not os.path.exists(pca_path) or not os.path.exists(kmeans_path):
         return None, None
-    with open(umap_path, "rb") as f:
+    with open(pca_path, "rb") as f:
         reducer = pickle.load(f)
     with open(kmeans_path, "rb") as f:
         clusterer = pickle.load(f)
@@ -133,7 +133,7 @@ def _load_umap_kmeans(model_name, base_dir="artifacts/models"):
 
 def compute_production_cluster_distribution(model_name, texts,
                                             base_dir="artifacts/models"):
-    reducer, clusterer = _load_umap_kmeans(model_name, base_dir)
+    reducer, clusterer = _load_pca_kmeans(model_name, base_dir)
     if reducer is None or clusterer is None:
         return None
 

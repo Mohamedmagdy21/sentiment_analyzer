@@ -63,7 +63,8 @@ def psi_to_risk(psi):
 
 def generate_and_save_baselines(model_name, train_df, test_df=None,
                                 feature_cols=None, target_col=None,
-                                base_dir="artifacts/models"):
+                                base_dir="artifacts/models",
+                                val_confidences=None):
     save_dir = os.path.join(base_dir, model_name, "monitoring")
     os.makedirs(save_dir, exist_ok=True)
 
@@ -107,15 +108,21 @@ def generate_and_save_baselines(model_name, train_df, test_df=None,
             categories=np.array(categories)
         )
 
-    confidence_vals = np.linspace(0.5, 1.0, 6)
-    pred_bins = np.array([0.0, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 1.0])
-    pred_expected = np.full(len(pred_bins) - 1, 1.0 / (len(pred_bins) - 1))
-    pred_drift = {"bins": pred_bins.tolist(), "expected": pred_expected.tolist()}
+    if val_confidences is not None and len(val_confidences) > 0:
+        confs = np.asarray(val_confidences, dtype=float)
+        confs = confs[~np.isnan(confs)]
+        bins = np.linspace(confs.min(), confs.max(), 11)
+        bins = np.unique(bins)
+        pred_expected = get_frequency(confs, bins)
+    else:
+        bins = np.array([0.0, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 1.0])
+        pred_expected = np.full(len(bins) - 1, 1.0 / (len(bins) - 1))
+    pred_drift = {"bins": bins.tolist(), "expected": pred_expected.tolist()}
     with open(os.path.join(save_dir, "prediction_drift_baseline.json"), "w") as f:
         json.dump(pred_drift, f, indent=2)
     np.savez_compressed(
         os.path.join(save_dir, "prediction_drift_baseline.npz"),
-        bins=np.array(pred_bins),
+        bins=np.array(bins),
         expected=np.array(pred_expected)
     )
 

@@ -1,5 +1,5 @@
 _target_: preprocessing.processors.preprocess_twitter.TwitterPreprocessor
 
-test_validation_split: 0.2
+test_validation_split: 0.01
 random_state: 42
 stratify: true

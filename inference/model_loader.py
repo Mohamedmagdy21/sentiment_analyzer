@@ -43,7 +43,11 @@ def load_model(dataset_name: str):
         ignore_mismatched_sizes=True
     )
 
-    model = PeftModel.from_pretrained(base_model, model_dir)
+    adapter_path = os.path.join(model_dir, "adapter_config.json")
+    if os.path.exists(adapter_path):
+        model = PeftModel.from_pretrained(base_model, model_dir)
+    else:
+        model = base_model
     model.to(device)
     model.eval()
 

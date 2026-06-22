@@ -29,24 +29,28 @@ class HuggingFaceEvaluator(BaseEvaluator):
     def __init__(
         self,
         model_dir: str,
-        labels_map: dict
+        labels_map: dict,
+        use_peft: bool = True
     ):
 
         self.model_dir = model_dir
         self.labels_map = labels_map
+        self.use_peft = use_peft
 
         self.model = None
         self.tokenizer = None
 
     def load_model(self):
-
         base_model = AutoModelForSequenceClassification.from_pretrained(
-        "cardiffnlp/twitter-roberta-base-sentiment",
-         num_labels=3,
-         ignore_mismatched_sizes=True
+            "cardiffnlp/twitter-roberta-base-sentiment",
+            num_labels=3,
+            ignore_mismatched_sizes=True
         )
-        self.model = PeftModel.from_pretrained(base_model, self.model_dir)
         self.tokenizer = AutoTokenizer.from_pretrained("cardiffnlp/twitter-roberta-base-sentiment")
+        if self.use_peft:
+            self.model = PeftModel.from_pretrained(base_model, self.model_dir)
+        else:
+            self.model = base_model
         from inference.model_loader import device
         self.model.to(device)
         self.model.eval()

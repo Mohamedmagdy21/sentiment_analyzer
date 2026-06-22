@@ -21,14 +21,10 @@ def _log_duration(name: str, start: float):
 
 
 def _stream_subprocess(cmd, cwd):
-    """Run subprocess streaming output live to Airflow logs."""
     process = subprocess.Popen(
-        cmd,
-        cwd=cwd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
+        cmd, cwd=cwd,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        text=True, bufsize=1,
     )
     for line in process.stdout:
         print(line, end="")
@@ -36,168 +32,109 @@ def _stream_subprocess(cmd, cwd):
     return process.returncode
 
 
-def _hydra_preprocess(dataset_name: str):
-    start = time.perf_counter()
-    print(f"[TIMING] Preprocessing {dataset_name} started")
-
-    cmd = [
-        PROJECT_PYTHON,
-        "-m",
-        "preprocessing.preprocess",
-        f"dataset={dataset_name}",
-        f"hydra.run.dir=/tmp/hydra_preprocess_{dataset_name}",
-    ]
-    if dataset_name == "amazon":
-        cmd += [
-            "preprocessing=amazon_preprocessor",
-            "model=amazon_roberta",
-        ]
-
-    rc = _stream_subprocess(cmd, PROJECT_ROOT)
-
-    if rc != 0:
-        raise RuntimeError(f"Preprocessing failed for {dataset_name} (rc={rc})")
-
-    _log_duration(f"preprocessing {dataset_name}", start)
-
-
 def _hydra_train(dataset_name: str):
     import shutil
-
-    # Clear Hydra's saved state from previous runs
     for hydra_dir in [
         os.path.join(PROJECT_ROOT, ".hydra"),
         f"/tmp/hydra_train_{dataset_name}",
     ]:
         if os.path.exists(hydra_dir):
             shutil.rmtree(hydra_dir)
-            print(f"[INFO] Cleared {hydra_dir}")
-
-    # Clear checkpoints to prevent HuggingFace Trainer from resuming
     checkpoint_dir = os.path.join(PROJECT_ROOT, "artifacts", "checkpoints")
     if os.path.exists(checkpoint_dir):
         shutil.rmtree(checkpoint_dir)
-        print(f"[INFO] Cleared checkpoints dir")
 
     start = time.perf_counter()
-    print(f"[TIMING] Training {dataset_name} started")
-
-    model_cfg = f"model={dataset_name}_roberta"
     cmd = [
-        PROJECT_PYTHON,
-        "-m",
-        "training.train",
+        PROJECT_PYTHON, "-m", "training.train",
         f"dataset={dataset_name}",
-        model_cfg,
+        f"model={dataset_name}_roberta",
         f"hydra.run.dir=/tmp/hydra_train_{dataset_name}",
         "--config-dir", os.path.join(PROJECT_ROOT, "configs"),
         "--config-name", "config",
     ]
-
     rc = _stream_subprocess(cmd, PROJECT_ROOT)
-
     if rc != 0:
         raise RuntimeError(f"Training failed for {dataset_name} (rc={rc})")
-
     _log_duration(f"training {dataset_name}", start)
-
-    
-
-def _hydra_generate_semantic_baseline(dataset_name: str):
-    import yaml
-
-    start = time.perf_counter()
-    print(f"[TIMING] Semantic baseline for {dataset_name} started")
-
-    config_dir = os.path.join(PROJECT_ROOT, "configs")
-
-    with open(os.path.join(config_dir, "dataset", f"{dataset_name}.yaml")) as f:
-        ds_cfg = yaml.safe_load(f)
-
-    train_csv = os.path.join(PROJECT_ROOT, ds_cfg["processed_train_path"])
-    text_col = "text"
-    label_col = "label"
-
-    import pandas as pd
-    df = pd.read_csv(train_csv)
-    texts = df[text_col].dropna().astype(str).tolist()
-    labels = df[label_col].dropna().values if label_col in df.columns else None
-
-    from inference.semantic_monitoring_utils import fit_semantic_baseline
-    fit_semantic_baseline(dataset_name, texts, labels=labels)
-
-    _log_duration(f"semantic_baseline {dataset_name}", start)
 
 
 def _hydra_evaluate(dataset_name: str):
     start = time.perf_counter()
-    print(f"[TIMING] Evaluation for {dataset_name} started")
-
     model_dir = f"{PROJECT_ROOT}/artifacts/models/{dataset_name}"
-    model_cfg = f"model={dataset_name}_roberta"
-
     cmd = [
-        PROJECT_PYTHON,
-        "-m",
-        "evaluation.evaluate",
+        PROJECT_PYTHON, "-m", "evaluation.evaluate",
         f"dataset={dataset_name}",
-        model_cfg,
+        f"model={dataset_name}_roberta",
         f"evaluator.model_dir={model_dir}",
+        "evaluator.use_peft=True",
         f"hydra.run.dir=/tmp/hydra_evaluate_{dataset_name}",
     ]
-
     rc = _stream_subprocess(cmd, PROJECT_ROOT)
-
     if rc != 0:
         raise RuntimeError(f"Evaluation failed for {dataset_name} (rc={rc})")
-
     _log_duration(f"evaluation {dataset_name}", start)
 
 
+def _generate_drift_baselines(dataset_name: str):
+    start = time.perf_counter()
+    import pandas as pd
+    import numpy as np
+    import torch
+    from inference.model_loader import load_model, predict
+    from inference.monitoring_utils import generate_and_save_baselines
+
+    train_df = pd.read_csv(os.path.join(PROJECT_ROOT, f"Data/processed/{dataset_name}/train.csv"))
+    val_df = pd.read_csv(os.path.join(PROJECT_ROOT, f"Data/processed/{dataset_name}/val.csv"))
+
+    tokenizer, model = load_model(dataset_name)
+    model.eval()
+    val_texts = val_df["text"].dropna().astype(str).tolist()
+    _, probs = predict(val_texts, tokenizer, model, batch_size=16)
+    confidences = probs.max(axis=1)
+    del model
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    generate_and_save_baselines(
+        dataset_name, train_df, val_df,
+        target_col="label", val_confidences=confidences,
+    )
+    _log_duration(f"drift_baselines {dataset_name}", start)
+
+
+def _deploy():
+    start = time.perf_counter()
+    import shutil
+    src = os.path.join(PROJECT_ROOT, "artifacts", "models")
+    dst = os.path.join(PROJECT_ROOT, "inference", "artifacts", "models")
+    os.makedirs(dst, exist_ok=True)
+    for model in ["twitter", "amazon"]:
+        src_m = os.path.join(src, model)
+        dst_m = os.path.join(dst, model)
+        if os.path.exists(src_m):
+            if os.path.exists(dst_m):
+                shutil.rmtree(dst_m)
+            shutil.copytree(src_m, dst_m)
+    print("[DEPLOY] Adapters copied to inference directory.")
+    _log_duration("deploy", start)
+
+
 with DAG(
-    dag_id="sentiment_training",
+    dag_id="peft_training",
     start_date=datetime(2026, 1, 1),
     schedule=None,
     catchup=False,
-    default_args={
-        "retries": 2,
-        "retry_delay": timedelta(seconds=120),
-    },
-    description=(
-        "Orchestrate Twitter and Amazon sentiment model pipelines "
-        "in parallel: preprocess, train locally on GPU, evaluate."
-    ),
+    default_args={"retries": 2, "retry_delay": timedelta(seconds=120)},
+    description="PEFT LoRA training + drift baselines + deploy",
 ) as dag:
 
     start = EmptyOperator(task_id="start")
-
-    preprocess_twitter = PythonOperator(
-        task_id="preprocess_twitter",
-        python_callable=_hydra_preprocess,
-        op_kwargs={"dataset_name": "twitter"},
-    )
-
-    preprocess_amazon = PythonOperator(
-        task_id="preprocess_amazon",
-        python_callable=_hydra_preprocess,
-        op_kwargs={"dataset_name": "amazon"},
-    )
-
-    # Gate: ensures train_twitter fires only once
-    # after BOTH preprocessing tasks complete
-    preprocessing_done = EmptyOperator(task_id="preprocessing_done")
 
     train_twitter = PythonOperator(
         task_id="train_twitter",
         python_callable=_hydra_train,
         op_kwargs={"dataset_name": "twitter"},
-        execution_timeout=TRAIN_TIMEOUT,
-    )
-
-    train_amazon = PythonOperator(
-        task_id="train_amazon",
-        python_callable=_hydra_train,
-        op_kwargs={"dataset_name": "amazon"},
         execution_timeout=TRAIN_TIMEOUT,
     )
 
@@ -207,36 +144,38 @@ with DAG(
         op_kwargs={"dataset_name": "twitter"},
     )
 
+    drift_twitter = PythonOperator(
+        task_id="generate_drift_baselines_twitter",
+        python_callable=_generate_drift_baselines,
+        op_kwargs={"dataset_name": "twitter"},
+    )
+
+    train_amazon = PythonOperator(
+        task_id="train_amazon",
+        python_callable=_hydra_train,
+        op_kwargs={"dataset_name": "amazon"},
+        execution_timeout=TRAIN_TIMEOUT,
+    )
+
     evaluate_amazon = PythonOperator(
         task_id="evaluate_amazon",
         python_callable=_hydra_evaluate,
         op_kwargs={"dataset_name": "amazon"},
     )
 
-    generate_baseline_twitter = PythonOperator(
-        task_id="generate_baseline_twitter",
-        python_callable=_hydra_generate_semantic_baseline,
-        op_kwargs={"dataset_name": "twitter"},
+    drift_amazon = PythonOperator(
+        task_id="generate_drift_baselines_amazon",
+        python_callable=_generate_drift_baselines,
+        op_kwargs={"dataset_name": "amazon"},
     )
 
-    generate_baseline_amazon = PythonOperator(
-        task_id="generate_baseline_amazon",
-        python_callable=_hydra_generate_semantic_baseline,
-        op_kwargs={"dataset_name": "amazon"},
+    deploy = PythonOperator(
+        task_id="deploy_adapters",
+        python_callable=_deploy,
     )
 
     end = EmptyOperator(task_id="end")
 
-   # Twitter pipeline first
-    start >> preprocess_twitter
-    preprocess_twitter >> train_twitter
-    train_twitter >> evaluate_twitter
-    evaluate_twitter >> generate_baseline_twitter
-
-    # Amazon pipeline after twitter completes
-    generate_baseline_twitter >> preprocess_amazon
-    preprocess_amazon >> train_amazon
-    train_amazon >> evaluate_amazon
-    evaluate_amazon >> generate_baseline_amazon
-
-    end << [generate_baseline_amazon]
+    start >> train_twitter >> evaluate_twitter >> drift_twitter
+    drift_twitter >> train_amazon >> evaluate_amazon >> drift_amazon
+    drift_amazon >> deploy >> end

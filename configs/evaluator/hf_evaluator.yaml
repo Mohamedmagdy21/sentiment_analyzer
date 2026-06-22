@@ -1,6 +1,7 @@
 _target_: evaluation.evaluators.hf_evaluator.HuggingFaceEvaluator
 
 model_dir: artifacts/models
+use_peft: true
 
 labels_map:
   0: negative
