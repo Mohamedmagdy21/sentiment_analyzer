@@ -89,15 +89,42 @@ git clone https://github.com/Mohamedmagdy21/sentiment_analyzer.git
 cd sentiment_analyzer
 python3 -m venv venv_cuda && source venv_cuda/bin/activate
 pip install -r requirements.txt
+```
 
-# Preprocess
+**Sets up the project:**
+- `venv_cuda` — isolated Python environment so dependencies don't conflict with other projects on your machine
+- `pip install` — installs PyTorch, Transformers, FastAPI, Prometheus client, pandas, and everything else needed
+
+---
+
+```bash
 python3 -m preprocessing.preprocess dataset=twitter
 python3 -m preprocessing.preprocess dataset=amazon
+```
 
-# Evaluate base model
+**Prepares the raw data:**
+- Reads `Data/raw/twitter.csv` and `Data/raw/amazon.csv`
+- Cleans text (removes URLs, special characters, normalizes whitespace)
+- Maps string sentiment labels (`positive`, `negative`, `neutral`) to integers (0, 1, 2)
+- Splits into `train.csv` / `val.csv` / `test.csv` and saves to `Data/processed/<name>/`
+- **Only needs to run once.** The processed CSVs are cached on disk.
+
+---
+
+```bash
 python3 -m evaluation.evaluate dataset=twitter model=twitter_roberta evaluator.use_peft=False
+```
 
-# Generate monitoring baselines (data drift, target drift, prediction drift)
+**Runs the base model against test data to get accuracy metrics:**
+- Loads `cardiffnlp/twitter-roberta-base-sentiment` (no LoRA adapter — `use_peft=False`)
+- Runs inference on `Data/processed/twitter/test.csv`
+- Prints accuracy, weighted F1, and per-class precision / recall
+- Saves results to `artifacts/models/twitter/evaluation_results_*.txt`
+- This is a sanity check — if base accuracy is low, something is wrong with the data
+
+---
+
+```bash
 python3 -c "
 from inference.monitoring_utils import generate_and_save_baselines
 from inference.model_loader import predict
@@ -115,8 +142,23 @@ for name in ['twitter', 'amazon']:
     generate_and_save_baselines(name, train_df, val_df, target_col='label', val_confidences=probs.max(axis=1))
     del model; torch.cuda.empty_cache()
 "
+```
 
-# Generate semantic baselines (embedding drift)
+**Generates the data / target / prediction drift baselines:**
+For each model (`twitter`, `amazon`):
+1. Loads the training CSV and validation CSV
+2. Loads the base RoBERTa model and runs it on the validation set
+3. Computes the **actual confidence histogram** (not a uniform distribution) from the model's predictions on validation data
+4. Saves to `artifacts/models/<name>/monitoring/`:
+   - `data_drift_baseline.json` — text length distribution from training (10 quantile bins)
+   - `target_drift_baseline.json` — label distribution from training (positive / neutral / negative proportions)
+   - `prediction_drift_baseline.json` — confidence histogram from the model on validation data (10 equal-width bins spanning min→max confidence)
+
+These files are what the drift cards compare against. Without them, every PSI value is `null`.
+
+---
+
+```bash
 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python3 -c "
 from inference.semantic_monitoring_utils import fit_semantic_baseline
 import pandas as pd
@@ -125,10 +167,37 @@ for name in ['twitter', 'amazon']:
     texts = df['text'].dropna().astype(str).tolist()
     fit_semantic_baseline(name, texts, labels=df['label'].values if 'label' in df.columns else None)
 "
+```
 
-# Start the stack
+**Generates the semantic drift baseline (embedding-based drift detection):**
+For each model:
+1. Takes a stratified sample of 10,000 texts from the training set
+2. Passes them through the frozen RoBERTa base model and extracts the **[CLS]** embedding from the last hidden layer (a 768-dimensional vector per text)
+3. Reduces dimensionality from 768 → 5 using **PCA** (faster and deterministic — replaced UMAP which crashed on 4 GB GPUs)
+4. Clusters the 5D embeddings into **10 groups using KMeans**
+5. Records the proportion of texts in each cluster — this is the "expected" semantic distribution
+6. Saves `semantic_pca.pkl`, `semantic_kmeans.pkl`, and `semantic_expected.npy` to the monitoring directory
+
+`PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` prevents the GPU from crashing on OOM when extracting 10k embeddings at once on a 4 GB card.
+
+**What semantic drift catches that PSI on text length / labels misses:**
+Semantic drift detects when the *vocabulary* of your customers changes — words like "sick," "literally," or "fire" being used in new ways. Text length and label distributions might look stable while the embedding space has already shifted. This is typically the earliest warning sign.
+
+---
+
+```bash
 docker compose up -d
 ```
+
+**Starts three services:**
+
+| Service | Port | What it does |
+|---|---|---|
+| `inference` | `8000` | FastAPI server — `/predict` (CSV upload), `/drift/metrics` (PSI + risk), `/lifecycle/metrics` (accumulation + memory), static UI at `/` |
+| `prometheus` | `9090` | Scrapes `/metrics` every 15s — stores latency, prediction count, confidence, and all drift PSI gauges |
+| `grafana` | `3000` | Dashboards powered by Prometheus — optional, the built-in UI at `:8000` already shows drift cards |
+
+Volumes are mounted from `artifacts/` so models, baselines, and inference logs persist across restarts.
 
 Open `http://localhost:8000`, upload a CSV, click **Classify CSV**.
 
