@@ -8,6 +8,7 @@ EPSILON = 1e-4
 
 
 def compute_quantile_bins(data, num_bins=10):
+    """Compute quantile-based bin edges from data."""
     data = np.asarray(data, dtype=float)
     data = data[~np.isnan(data)]
     if len(data) == 0:
@@ -21,6 +22,7 @@ def compute_quantile_bins(data, num_bins=10):
 
 
 def get_frequency(data, bins):
+    """Compute normalised histogram frequencies for numeric data."""
     data = np.asarray(data, dtype=float)
     data = data[~np.isnan(data)]
     counts, _ = np.histogram(data, bins=bins)
@@ -31,6 +33,7 @@ def get_frequency(data, bins):
 
 
 def get_categorical_frequency(data, categories):
+    """Compute frequency distribution for categorical data."""
     data = np.asarray(data)
     total = len(data)
     if total == 0:
@@ -40,6 +43,7 @@ def get_categorical_frequency(data, categories):
 
 
 def calculate_psi(expected, actual):
+    """Calculate Population Stability Index between two distributions."""
     expected = np.asarray(expected, dtype=float)
     actual = np.asarray(actual, dtype=float)
     expected = np.clip(expected, EPSILON, None)
@@ -50,6 +54,7 @@ def calculate_psi(expected, actual):
 
 
 def psi_to_risk(psi):
+    """Map a PSI value to a risk category and percentage."""
     risk_pct = min(max((psi / 0.3) * 100, 0), 100)
     if psi < 0.1:
         return round(psi, 4), "low", round(risk_pct, 1)
@@ -65,6 +70,7 @@ def generate_and_save_baselines(model_name, train_df, test_df=None,
                                 feature_cols=None, target_col=None,
                                 base_dir="artifacts/models",
                                 val_confidences=None):
+    """Generate and persist data, target, and prediction drift baselines."""
     save_dir = os.path.join(base_dir, model_name, "monitoring")
     os.makedirs(save_dir, exist_ok=True)
 
@@ -130,6 +136,7 @@ def generate_and_save_baselines(model_name, train_df, test_df=None,
 
 
 def load_baseline(model_name, drift_type, base_dir="artifacts/models"):
+    """Load a saved drift baseline (JSON or NPZ) for a model."""
     load_dir = os.path.join(base_dir, model_name, "monitoring")
     json_path = os.path.join(load_dir, f"{drift_type}_drift_baseline.json")
     npz_path = os.path.join(load_dir, f"{drift_type}_drift_baseline.npz")
@@ -144,6 +151,7 @@ def load_baseline(model_name, drift_type, base_dir="artifacts/models"):
 def compute_production_psi(model_name, production_df, drift_type,
                            feature_cols=None, target_col=None,
                            base_dir="artifacts/models"):
+    """Compute PSI for production data against a saved baseline."""
     baseline = load_baseline(model_name, drift_type)
     if baseline is None:
         return None

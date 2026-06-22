@@ -1,8 +1,70 @@
-# Sentiment Analyzer
+# Know Your Customer Sentiment
 
 Understand how your customers *really* feel — at scale, continuously, and without breaking the bank.
 
 Every customer review, support ticket, and social media mention is a signal. This project ingests those signals, classifies them as positive / neutral / negative, and **watches for when the language of your audience shifts** so you can retrain before your model goes stale.
+
+---
+
+## The UI at a Glance
+
+![Full UI](screenshots/ui_full_annotated.png)
+
+The interface is split into two panels. Upload a CSV on the left, watch results pour in on the right.
+
+### ① Upload CSV — top left
+Drop any CSV containing a `text` column. The server classifies every row through an ensemble of two sentiment models (twitter-trained + amazon-trained).
+
+### ② Results table — left panel
+Every row shows its original text, predicted sentiment (color-coded), confidence score, and which model was used. Download the enriched CSV or clear the cache between runs.
+
+### ③ KPI cards — top right
+Four glassmorphism cards show the pulse of your data:
+- **Total Reviews** classified in the current accumulation window
+- **Positive / Negative / Neutral** percentages — green, red, and orange
+
+### ④ Sentiment distribution chart — center right
+A live bar chart of positive / negative / neutral counts. Toggle between:
+
+| Tab | What it shows |
+|---|---|
+| **Inference** | Current batch just classified |
+| **Accumulation** | Cumulative totals over the configured time window (resets periodically) |
+| **Memory** | Archived historical periods — compare this week vs last week |
+
+Resize the chart vertically with the handle at the bottom.
+
+### ⑤ System metrics — below chart
+- **Avg Latency**: milliseconds per classification
+- **Predictions**: total since server start
+- **Avg Confidence**: mean model confidence across all predictions
+
+### ⑥ Drift risk cards — bottom right
+
+![Drift cards](screenshots/ui_drift_cards_annotated.png)
+
+Four cards, one per drift signal. Each shows the PSI value, a color-coded level badge, and auto-updates every few seconds:
+
+| Card | Color | PSI Range | Meaning |
+|---|---|---|---|
+| **Data Drift** | 🟢 🟡 🟠 🔴 | 0 → 0.3+ | Text length distribution shift |
+| **Prediction Drift** | 🟢 🟡 🟠 🔴 | 0 → 0.3+ | Model confidence distribution shift |
+| **Target Drift** | 🟢 🟡 🟠 🔴 | 0 → 0.3+ | Sentiment label distribution shift |
+| **Semantic Drift** | 🟢 🟡 🟠 🔴 | 0 → 0.3+ | Language / embedding space shift |
+
+> **PSI ≥ 0.25 triggers an ALERT.** That is your signal to collect new data and trigger a PEFT retraining run.
+
+### KPI cards — close-up
+
+![KPIs](screenshots/ui_kpis_annotated.png)
+
+Four compact stats at the top of the right panel — total count and three sentiment percentages. These reflect the current accumulation window (default 24h).
+
+### Sentiment chart — close-up
+
+![Chart](screenshots/ui_chart_annotated.png)
+
+The bar chart supports three views. Resize it vertically with the handle. Each bar shows the exact count as a floating label. Hover for Chart.js tooltips.
 
 ---
 
@@ -22,7 +84,7 @@ One YAML file controls the entire model stack. Want to switch from RoBERTa to BE
 
 ### 3. Monitoring as a first-class citizen
 
-A model that drifts silently is worse than no model at all. This project computes **five drift signals** continuously:
+A model that drifts silently is worse than no model at all. This project computes **four drift signals** continuously:
 
 | Drift | What it measures | Why it matters |
 |---|---|---|
@@ -30,7 +92,6 @@ A model that drifts silently is worse than no model at all. This project compute
 | **Target drift** | Sentiment label distribution vs training | Are people getting angrier / happier overall? |
 | **Prediction drift** | Model confidence distribution vs training | Is the model becoming unsure? |
 | **Semantic drift** | [CLS] embedding distribution via PCA + KMeans → PSI | Language itself may be shifting ("sick" means cool now) |
-| **Ensemble** | Max PSI across all models | Single number: should I retrain? |
 
 When any PSI crosses the **alert threshold (≥ 0.25)**, a card turns red in the dashboard. You inspect, collect new data, and trigger a PEFT retraining run — all from the UI.
 
@@ -190,7 +251,7 @@ curl -X POST http://localhost:8000/predict \
   -F "file=@test_sample_1000.csv"
 ```
 
-Or open `http://localhost:8000` in your browser, upload a CSV, and click **Classify**.
+Or open `http://localhost:8000` in your browser, upload a CSV, and click **Classify CSV**.
 
 ### 7. Verify drift monitoring
 
@@ -200,6 +261,8 @@ python3 scripts/production_semantic_drift_job.py
 ```
 
 Then check `http://localhost:8000` — the four drift cards populate with risk levels.
+
+> **Tip:** Generate at least 500 inference predictions before running drift jobs — the volume guardrail enforces a minimum sample size for statistically meaningful PSI computation.
 
 ---
 

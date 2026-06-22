@@ -37,7 +37,7 @@ class HuggingFaceTrainer(BaseTrainer):
         labels: dict,
         **kwargs
     ):
-
+        """Initialize trainer with model config, tokenizer name, and artifact paths."""
         self.name=name
         self.pretrained_name = pretrained_name
         self.tokenizer_name = tokenizer_name
@@ -50,7 +50,7 @@ class HuggingFaceTrainer(BaseTrainer):
         self.tokenizer = None
 
     def _build_tokenizer(self):
-
+        """Load the HuggingFace tokenizer from pretrained name."""
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.tokenizer_name
         )
@@ -58,7 +58,7 @@ class HuggingFaceTrainer(BaseTrainer):
         return self.tokenizer
 
     def _build_model(self):
-
+        """Load base model and wrap it with LoRA config for PEFT training."""
         base_model = (
             AutoModelForSequenceClassification.from_pretrained(
                 self.pretrained_name,
@@ -67,6 +67,7 @@ class HuggingFaceTrainer(BaseTrainer):
             )
         )
 
+        # LoRA configuration targeting attention and output projections
         peft_config = LoraConfig(
             task_type=TaskType.SEQ_CLS,
             inference_mode=False,
@@ -86,7 +87,8 @@ class HuggingFaceTrainer(BaseTrainer):
         train_dataset=None,
         eval_dataset=None
     ):
-
+        """Build a WeightedLossTrainer with the configured training arguments."""
+        # Training arguments: mixed precision, gradient checkpointing, 8-bit AdamW
         training_args = TrainingArguments(
          output_dir="artifacts/checkpoints",
          #max_steps=10,
@@ -112,6 +114,7 @@ class HuggingFaceTrainer(BaseTrainer):
         dataloader_num_workers=2,
         include_num_input_tokens_seen=False,
         )
+        # WeightedLossTrainer applies class-weight rebalancing during loss computation
         trainer = WeightedLossTrainer(
             model=self.model,
             args=training_args,
@@ -122,7 +125,7 @@ class HuggingFaceTrainer(BaseTrainer):
         return trainer
 
     def train(self, dataset_cfg):
-
+        """Full training loop: tokenizer init, model build, dataset loading, training, and save."""
         print(
             f"Loading tokenizer: {self.tokenizer_name}"
         )
@@ -138,7 +141,7 @@ class HuggingFaceTrainer(BaseTrainer):
         print(
             "Loading processed datasets..."
         )
-
+        # Load preprocessed train/val CSV files
         train_df = pd.read_csv(
             dataset_cfg.processed_train_path
         )

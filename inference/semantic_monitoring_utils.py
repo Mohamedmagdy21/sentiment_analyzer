@@ -19,6 +19,7 @@ _frozen_cache = {}
 
 
 def get_frozen_base(model_name):
+    """Return a cached frozen transformer model and tokenizer."""
     from inference.model_loader import _get_model_config
     cfg = _get_model_config(model_name)
     pretrained_name = cfg["pretrained_name"]
@@ -34,6 +35,7 @@ def get_frozen_base(model_name):
 
 
 def extract_embeddings(texts, tokenizer, model, batch_size=16):
+    """Extract [CLS] embeddings from transformer hidden states."""
     all_embeddings = []
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i + batch_size]
@@ -66,6 +68,7 @@ def fit_semantic_baseline(model_name, texts, labels=None,
                           n_components=5, n_clusters=10,
                           max_samples=10000,
                           base_dir="artifacts/models"):
+    """Fit PCA + KMeans on embeddings and save cluster proportions as baseline."""
     save_dir = os.path.join(project_root, base_dir, model_name, "monitoring")
     os.makedirs(save_dir, exist_ok=True)
 
@@ -119,6 +122,7 @@ def load_semantic_baseline(model_name, base_dir="artifacts/models"):
 
 
 def _load_pca_kmeans(model_name, base_dir="artifacts/models"):
+    """Load saved PCA reducer and KMeans clusterer from disk."""
     load_dir = os.path.join(project_root, base_dir, model_name, "monitoring")
     pca_path = os.path.join(load_dir, "semantic_pca.pkl")
     kmeans_path = os.path.join(load_dir, "semantic_kmeans.pkl")
@@ -133,6 +137,7 @@ def _load_pca_kmeans(model_name, base_dir="artifacts/models"):
 
 def compute_production_cluster_distribution(model_name, texts,
                                             base_dir="artifacts/models"):
+    """Project production texts through baseline PCA/KMeans and return cluster proportions."""
     reducer, clusterer = _load_pca_kmeans(model_name, base_dir)
     if reducer is None or clusterer is None:
         return None
@@ -146,6 +151,7 @@ def compute_production_cluster_distribution(model_name, texts,
 
 
 def compute_semantic_psi(model_name, texts, base_dir="artifacts/models"):
+    """Compute semantic PSI by comparing production cluster distribution to baseline."""
     baseline = load_semantic_baseline(model_name, base_dir)
     if baseline is None:
         return None

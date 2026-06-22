@@ -9,7 +9,7 @@ from hydra.utils import instantiate
     config_name="config"
 )
 def main(cfg):
-
+    """Instantiate the preprocessor from Hydra config and run text cleaning, label mapping, and train/val/test split."""
     processor = instantiate(
         cfg.preprocessing
     )

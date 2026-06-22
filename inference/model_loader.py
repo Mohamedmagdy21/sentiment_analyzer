@@ -13,10 +13,12 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODELS_DIR = os.path.join(PROJECT_ROOT, "artifacts", "models")
 CONFIGS_DIR = os.path.join(PROJECT_ROOT, "configs", "model")
 
+# Use GPU if available, otherwise fall back to CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def _get_model_config(dataset_name: str):
+    """Find and load the YAML config file for the given dataset model."""
     pattern = os.path.join(CONFIGS_DIR, f"{dataset_name}_*.yaml")
     matches = _glob.glob(pattern)
     if not matches:
@@ -29,6 +31,7 @@ def _get_model_config(dataset_name: str):
 
 
 def load_model(dataset_name: str):
+    """Load tokenizer and model (with optional PEFT adapter) for a dataset."""
     cfg = _get_model_config(dataset_name)
     model_dir = os.path.join(MODELS_DIR, dataset_name)
     pretrained_name = cfg["pretrained_name"]
@@ -43,6 +46,7 @@ def load_model(dataset_name: str):
         ignore_mismatched_sizes=True
     )
 
+    # Load PEFT adapter if available, otherwise use the base model
     adapter_path = os.path.join(model_dir, "adapter_config.json")
     if os.path.exists(adapter_path):
         model = PeftModel.from_pretrained(base_model, model_dir)
@@ -55,12 +59,13 @@ def load_model(dataset_name: str):
 
 
 #def load_both_models():
-   # tokenizer_twitter, model_twitter = load_model("twitter")
+    # tokenizer_twitter, model_twitter = load_model("twitter")
     #tokenizer_amazon, model_amazon = load_model("amazon")
     #return (tokenizer_twitter, model_twitter), (tokenizer_amazon, model_amazon)
 
 
 def predict(texts, tokenizer, model, batch_size=64):
+    """Run batched inference on a list of texts, returning predictions and probabilities."""
     all_preds = []
     all_probs = []
     for i in range(0, len(texts), batch_size):

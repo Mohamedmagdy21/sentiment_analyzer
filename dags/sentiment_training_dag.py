@@ -33,6 +33,7 @@ def _stream_subprocess(cmd, cwd):
 
 
 def _hydra_train(dataset_name: str):
+    """Run PEFT LoRA training via Hydra for the given dataset."""
     import shutil
     for hydra_dir in [
         os.path.join(PROJECT_ROOT, ".hydra"),
@@ -60,6 +61,7 @@ def _hydra_train(dataset_name: str):
 
 
 def _hydra_evaluate(dataset_name: str):
+    """Evaluate the fine-tuned PEFT model on the test set."""
     start = time.perf_counter()
     model_dir = f"{PROJECT_ROOT}/artifacts/models/{dataset_name}"
     cmd = [
@@ -77,6 +79,7 @@ def _hydra_evaluate(dataset_name: str):
 
 
 def _generate_drift_baselines(dataset_name: str):
+    """Compute and save data/target/prediction drift baselines from train+val sets."""
     start = time.perf_counter()
     import pandas as pd
     import numpy as np
@@ -104,6 +107,7 @@ def _generate_drift_baselines(dataset_name: str):
 
 
 def _deploy():
+    """Copy trained adapter weights from artifacts to the inference directory."""
     start = time.perf_counter()
     import shutil
     src = os.path.join(PROJECT_ROOT, "artifacts", "models")
@@ -120,6 +124,7 @@ def _deploy():
     _log_duration("deploy", start)
 
 
+# Manual trigger only — trains PEFT adapters, evaluates, generates drift baselines, deploys
 with DAG(
     dag_id="peft_training",
     start_date=datetime(2026, 1, 1),

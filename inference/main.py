@@ -34,12 +34,14 @@ INFERENCE_LOG = os.path.join(INFERENCE_LOG_DIR, "predictions.jsonl")
 
 @app.on_event("startup")
 def kill_existing():
+    """Kill any existing uvicorn instance, restore lifecycle gauges, and reload semantic drift PSI."""
     if not os.path.exists("/.dockerenv"):
         os.system("pkill -f 'uvicorn inference.main' > /dev/null 2>&1")
     accumulation = get_accumulation()
     memory = get_memory()
     _update_lifecycle_gauges(_last_inference, accumulation, memory)
 
+    # Reload semantic drift PSI values from persisted results on startup
     semantic_path = os.path.join(INFERENCE_LOG_DIR, "drift_semantic_results.json")
     if os.path.exists(semantic_path):
         try:
@@ -64,6 +66,7 @@ TEMP_CSV = "/tmp/_sentiment_result.csv"
 
 
 def get_twitter_models():
+    """Lazy-load and cache the Twitter sentiment model."""
     global twitter_models
     if twitter_models is None:
         from inference.model_loader import load_model
@@ -73,6 +76,7 @@ def get_twitter_models():
 
 
 def get_amazon_models():
+    """Lazy-load and cache the Amazon sentiment model."""
     global amazon_models
     if amazon_models is None:
         from inference.model_loader import load_model
@@ -82,6 +86,7 @@ def get_amazon_models():
 
 
 def _classify_texts(texts):
+    """Run ensemble classification and update Prometheus metric counters."""
     results = decide(texts, get_twitter_models(), get_amazon_models())
     counts = {"positive": 0, "negative": 0, "neutral": 0}
     for r in results:
@@ -92,6 +97,7 @@ def _classify_texts(texts):
 
 
 def _log_inference(texts, results):
+    """Append inference results as JSON lines to the prediction log file."""
     lines = []
     now = datetime.utcnow().isoformat()
     for i, r in enumerate(results):
@@ -109,6 +115,7 @@ def _log_inference(texts, results):
 
 
 def _update_lifecycle_gauges(inference_counts, accumulation_data, memory_data):
+    """Sync Prometheus lifecycle gauges with current inference, accumulation, and archive memory."""
     for s in LABELS:
         INFERENCE_VIEW.labels(sentiment=s).set(inference_counts.get(s, 0))
         ACCUMULATION_VIEW.labels(sentiment=s).set(accumulation_data.get(s, 0))
@@ -121,6 +128,7 @@ def _update_lifecycle_gauges(inference_counts, accumulation_data, memory_data):
 
 
 def _record_inference(counts):
+    """Persist the latest inference counts, update accumulation, and refresh gauges."""
     global _last_inference
     _last_inference = {**counts, "total": sum(counts.values())}
     accumulation = accumulate_metrics(counts)
@@ -130,6 +138,7 @@ def _record_inference(counts):
 
 @app.post("/predict", response_class=Response)
 def predict(file: UploadFile = File(...)):
+    """Accept a CSV, classify each text row, and return the augmented CSV with predictions."""
     start = time.perf_counter()
     df = pd.read_csv(file.file)
     df = df.dropna(subset=[df.columns[0]])
@@ -153,6 +162,7 @@ def predict(file: UploadFile = File(...)):
 
 @app.get("/lifecycle/metrics")
 def lifecycle_metrics():
+    """Return the current inference, accumulation, and memory archive data."""
     acc = get_accumulation()
     mem = get_memory()
     return {
@@ -164,11 +174,13 @@ def lifecycle_metrics():
 
 @app.get("/metrics")
 def metrics():
+    """Expose Prometheus-formatted metrics."""
     return Response(content=get_metrics(), media_type="text/plain")
 
 
 @app.get("/download")
 def download():
+    """Serve the last prediction CSV as a downloadable file."""
     if not _last_csv:
         return Response("No results yet", status_code=404)
     return Response(content=_last_csv, media_type="text/csv", headers={
@@ -181,6 +193,7 @@ STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard():
+    """Serve the main dashboard HTML page."""
     index = os.path.join(STATIC_DIR, "index.html")
     with open(index) as f:
         return f.read()
@@ -188,6 +201,7 @@ def dashboard():
 
 @app.get("/drift/metrics")
 def drift_metrics():
+    """Compute and return data/target/prediction drift metrics plus semantic drift for all models."""
     if not os.path.exists(INFERENCE_LOG):
         return {"drift": {}, "risk": {}}
     try:
@@ -197,6 +211,7 @@ def drift_metrics():
     if log_df.empty:
         return {"drift": {}, "risk": {}}
 
+    # Compute PSI drift per model for data, target, and prediction distributions
     results = {}
     for model_name in ["twitter", "amazon"]:
         model_df = log_df[log_df["model_used"] == model_name].copy()
@@ -229,6 +244,7 @@ def drift_metrics():
                 m_results[drift_type] = None
         results[model_name] = m_results
 
+    # Aggregate per-model drift into ensemble-level values (take the max across models)
     combined = {"data": None, "target": None, "prediction": None}
     for model_name, m_res in results.items():
         for k in ["data", "target", "prediction"]:
@@ -237,6 +253,7 @@ def drift_metrics():
                 combined[k] = max(combined[k] or 0, v) if combined[k] is not None else v
 
     from inference.monitoring_utils import psi_to_risk
+    # Convert each PSI value to a risk level and percentage
     risk = {}
     for k, v in combined.items():
         if v is not None:
@@ -252,6 +269,7 @@ def drift_metrics():
     if combined.get("target") is not None:
         DRIFT_TARGET.labels(model="ensemble").set(combined["target"])
 
+    # Load semantic drift (embedding-based PSI) from persisted file, if available
     semantic_path = os.path.join(INFERENCE_LOG_DIR, "drift_semantic_results.json")
     semantic_risk = None
     if os.path.exists(semantic_path):

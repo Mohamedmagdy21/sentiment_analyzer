@@ -37,6 +37,7 @@ ALERT_THRESHOLD = 0.25
 
 
 def load_recent_logs(window_hours=WINDOW_DEFAULT_HOURS):
+    """Load inference log entries from the last N hours as a DataFrame."""
     if not os.path.exists(INFERENCE_LOG):
         return None, 0
     try:
@@ -52,6 +53,7 @@ def load_recent_logs(window_hours=WINDOW_DEFAULT_HOURS):
 
 
 def main():
+    """Compute semantic PSI drift per model and ensemble, with volume guardrail and lookback expansion."""
     parser = argparse.ArgumentParser(description="24h semantic drift monitoring")
     parser.add_argument("--window-hours", type=int, default=WINDOW_DEFAULT_HOURS)
     args = parser.parse_args()
@@ -61,6 +63,7 @@ def main():
     window_label = f"{window_hours}h"
     lookback_expanded = False
 
+    # Volume guardrail: if fewer than MIN_SAMPLES in default window, expand lookback to 7 days
     if n_samples < MIN_SAMPLES:
         print(f"INSUFFICIENT_VOLUME_FOR_DRIFT: {n_samples} samples in {window_label} "
               f"(minimum {MIN_SAMPLES}). Expanding to {WINDOW_FALLBACK_HOURS}h window...")

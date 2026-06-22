@@ -36,6 +36,7 @@ PROMETHEUS_DIR = os.path.join(
 
 
 def load_recent_logs(window_hours=24):
+    """Load inference log entries from the last N hours as a DataFrame."""
     if not os.path.exists(INFERENCE_LOG):
         return None
     try:
@@ -74,12 +75,14 @@ def compute_drift(model_name, log_df):
 
 
 def main():
+    """Compute data/target/prediction PSI drift for each model and write results to JSON."""
     parser = argparse.ArgumentParser(description="24h batch drift monitoring")
     parser.add_argument("--window-hours", type=int, default=24)
     args = parser.parse_args()
 
     print(f"Loading last {args.window_hours}h of inference logs...")
     log_df = load_recent_logs(args.window_hours)
+    # Volume guardrail: skip if no predictions in the configured window
     if log_df is None or log_df.empty:
         print("No inference logs found in window. Skipping.")
         return

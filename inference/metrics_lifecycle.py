@@ -14,6 +14,7 @@ LABELS = ["positive", "negative", "neutral"]
 
 
 def _read_json(path):
+    """Read and return JSON data from a file, or None if missing."""
     if not os.path.exists(path):
         return None
     with open(path) as f:
@@ -21,20 +22,24 @@ def _read_json(path):
 
 
 def _write_json(path, data):
+    """Write data as JSON to the given file path."""
     with open(path, "w") as f:
         json.dump(data, f)
 
 
 def get_inference_metrics():
+    """Return a zeroed-out inference metrics dictionary."""
     return {"positive": 0, "negative": 0, "neutral": 0, "total": 0}
 
 
 def update_inference_metrics(counts):
+    """Add a total key to the counts dictionary and return it."""
     counts["total"] = sum(counts.get(k, 0) for k in LABELS)
     return counts
 
 
 def get_accumulation():
+    """Retrieve the current accumulation window, rotating to memory if the window has expired."""
     data = _read_json(ACCUMULATION_FILE)
     now = time.time()
     if data is None:
@@ -44,6 +49,7 @@ def get_accumulation():
         }
         _write_json(ACCUMULATION_FILE, data)
         return data
+    # Check if the accumulation window has expired; archive and reset if so
     elapsed_days = (now - data["created_at"]) / 86400
     if elapsed_days >= ACCUMULATION_WINDOW_DAYS:
         archive = {k: data[k] for k in ["positive", "negative", "neutral", "total"]}
@@ -59,6 +65,7 @@ def get_accumulation():
 
 
 def _append_memory(archive):
+    """Append an archive record to the memory file, keeping at most the last 100 entries."""
     memory = _read_json(MEMORY_FILE)
     if memory is None:
         memory = {"archives": []}
@@ -69,6 +76,7 @@ def _append_memory(archive):
 
 
 def accumulate_metrics(counts):
+    """Add inference counts to the current accumulation and persist."""
     data = get_accumulation()
     for k in LABELS:
         data[k] += counts.get(k, 0)
@@ -78,6 +86,7 @@ def accumulate_metrics(counts):
 
 
 def get_memory():
+    """Return stored archive memory, or an empty archives list."""
     data = _read_json(MEMORY_FILE)
     if data is None:
         data = {"archives": []}

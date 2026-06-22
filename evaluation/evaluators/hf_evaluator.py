@@ -32,7 +32,7 @@ class HuggingFaceEvaluator(BaseEvaluator):
         labels_map: dict,
         use_peft: bool = True
     ):
-
+        """Initialize evaluator with model path, label mapping, and PEFT toggle."""
         self.model_dir = model_dir
         self.labels_map = labels_map
         self.use_peft = use_peft
@@ -41,12 +41,14 @@ class HuggingFaceEvaluator(BaseEvaluator):
         self.tokenizer = None
 
     def load_model(self):
+        """Load base model and optionally attach PEFT adapter weights."""
         base_model = AutoModelForSequenceClassification.from_pretrained(
             "cardiffnlp/twitter-roberta-base-sentiment",
             num_labels=3,
             ignore_mismatched_sizes=True
         )
         self.tokenizer = AutoTokenizer.from_pretrained("cardiffnlp/twitter-roberta-base-sentiment")
+        # When use_peft=True, load LoRA adapter on top of base; otherwise evaluate base model directly
         if self.use_peft:
             self.model = PeftModel.from_pretrained(base_model, self.model_dir)
         else:
@@ -56,6 +58,7 @@ class HuggingFaceEvaluator(BaseEvaluator):
         self.model.eval()
 
     def predict(self, texts, batch_size=64):
+        """Run batched inference and return predicted class IDs."""
         from inference.model_loader import predict as shared_predict
         preds, _ = shared_predict(texts, self.tokenizer, self.model, batch_size=batch_size)
         return preds
@@ -64,7 +67,7 @@ class HuggingFaceEvaluator(BaseEvaluator):
         self,
         dataset_cfg
     ):
-
+        """Read the processed test CSV from the dataset config."""
         test_df = pd.read_csv(
             dataset_cfg.processed_test_path
         )
@@ -76,7 +79,7 @@ class HuggingFaceEvaluator(BaseEvaluator):
         labels,
         predictions
     ):
-
+        """Compute overall accuracy and weighted F1 score."""
         accuracy = accuracy_score(
             labels,
             predictions
@@ -101,7 +104,7 @@ class HuggingFaceEvaluator(BaseEvaluator):
         labels,
         predictions
     ):
-
+        """Compute per-class precision and recall."""
         precision = precision_score(
             labels,
             predictions,
@@ -125,7 +128,7 @@ class HuggingFaceEvaluator(BaseEvaluator):
         self,
         dataset_cfg
     ):
-
+        """Run full evaluation: load model, predict, compute metrics, log to MLflow."""
         os.system("pkill -f 'uvicorn inference.main' > /dev/null 2>&1")
 
         print(

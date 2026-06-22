@@ -14,11 +14,13 @@ PROJECT_PYTHON = os.path.join(PROJECT_ROOT, "venv_cuda", "bin", "python3")
 
 
 def _log_duration(name: str, start: float):
+    """Log elapsed time for a pipeline step."""
     elapsed = time.perf_counter() - start
     print(f"[TIMING] {name} completed in {elapsed:.2f}s")
 
 
 def _stream_subprocess(cmd, cwd):
+    """Run a subprocess and stream stdout line-by-line."""
     process = subprocess.Popen(
         cmd,
         cwd=cwd,
@@ -34,6 +36,7 @@ def _stream_subprocess(cmd, cwd):
 
 
 def _preprocess(dataset_name: str):
+    """Run preprocessing pipeline for the given dataset."""
     start = time.perf_counter()
     cmd = [
         PROJECT_PYTHON, "-m", "preprocessing.preprocess",
@@ -49,6 +52,7 @@ def _preprocess(dataset_name: str):
 
 
 def _evaluate_base(dataset_name: str):
+    """Evaluate the base (unfine-tuned) model on the given dataset."""
     start = time.perf_counter()
     model_dir = f"{PROJECT_ROOT}/artifacts/models/{dataset_name}"
     cmd = [
@@ -66,6 +70,7 @@ def _evaluate_base(dataset_name: str):
 
 
 def _generate_semantic_baseline(dataset_name: str):
+    """Fit and save a semantic drift baseline from training set embeddings."""
     start = time.perf_counter()
     cmd = [
         "env", "PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True",
@@ -82,6 +87,7 @@ def _generate_semantic_baseline(dataset_name: str):
     _log_duration(f"semantic_baseline {dataset_name}", start)
 
 
+# Pipeline: preprocess -> base eval -> semantic baselines, sequential twitter -> amazon
 with DAG(
     dag_id="base_model_pipeline",
     start_date=datetime(2026, 1, 1),

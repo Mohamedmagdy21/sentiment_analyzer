@@ -3,6 +3,7 @@ from inference.model_loader import predict, device
 
 
 def decide(texts, twitter_models, amazon_models):
+    """Classify texts using both Twitter and Amazon models, returning an ensemble PredictionResult per text."""
     tokenizer_tw, model_tw = twitter_models
     tokenizer_am, model_am = amazon_models
 
@@ -15,6 +16,7 @@ def decide(texts, twitter_models, amazon_models):
         conf_tw = float(probs_tw[i][p_tw])
         conf_am = float(probs_am[i][p_am])
 
+        # When both models agree, pick the one with higher confidence
         if p_tw == p_am:
             if conf_tw >= conf_am:
                 final_label = p_tw
@@ -25,6 +27,7 @@ def decide(texts, twitter_models, amazon_models):
                 confidence = conf_am
                 model_used = "amazon"
         else:
+            # When models disagree, use the more conservative (lower) label
             final_label = min(p_tw, p_am)
             confidence = conf_tw if p_tw == final_label else conf_am
             model_used = "twitter" if p_tw == final_label else "amazon"
