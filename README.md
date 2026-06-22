@@ -185,7 +185,7 @@ Semantic drift detects when the *vocabulary* of your customers changes — words
 
 ---
 
-> **Before you start the server:** All of the above commands must finish first. The monitoring baselines live on the host at `artifacts/models/<name>/monitoring/` — Docker mounts this directory into the container. If you start the stack before generating baselines, every drift card will show `— No data` and you will need to regenerate them or restart the container.
+> **Before you start the server:** All of the above commands must finish first. The monitoring baselines live on the host at `artifacts/models/<name>/monitoring/` — Docker mounts this directory into the container. If you start the stack before generating baselines, every drift card will show `— No data`. Go back, run the baseline generation commands, then restart the container.
 
 ```bash
 docker compose up -d
