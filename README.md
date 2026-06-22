@@ -8,63 +8,46 @@ Every customer review, support ticket, and social media mention is a signal. Thi
 
 ## The UI at a Glance
 
-![Full UI](screenshots/ui_full_annotated.png)
+![Full UI](screenshots/ui_overview.png)
 
 The interface is split into two panels. Upload a CSV on the left, watch results pour in on the right.
 
-### ① Upload CSV — top left
-Drop any CSV containing a `text` column. The server classifies every row through an ensemble of two sentiment models (twitter-trained + amazon-trained).
+**① Upload CSV** — Drop any CSV containing a `text` column. The server classifies every row through an ensemble of two sentiment models (twitter-trained + amazon-trained).
 
-### ② Results table — left panel
-Every row shows its original text, predicted sentiment (color-coded), confidence score, and which model was used. Download the enriched CSV or clear the cache between runs.
+**② Results table** — Every row shows its original text, predicted sentiment (color-coded), confidence score, and which model was used. Download the enriched CSV or clear between runs.
 
-### ③ KPI cards — top right
-Four glassmorphism cards show the pulse of your data:
-- **Total Reviews** classified in the current accumulation window
-- **Positive / Negative / Neutral** percentages — green, red, and orange
+**③ KPI cards** — Four compact stats: total reviews, positive / negative / neutral percentages. Updated live per accumulation window.
 
-### ④ Sentiment distribution chart — center right
-A live bar chart of positive / negative / neutral counts. Toggle between:
+**④ Sentiment chart** — Bar chart of positive / negative / neutral counts. Toggle between Inference (current batch), Accumulation (window totals), and Memory (archived periods). Resize vertically with the handle.
 
-| Tab | What it shows |
-|---|---|
-| **Inference** | Current batch just classified |
-| **Accumulation** | Cumulative totals over the configured time window (resets periodically) |
-| **Memory** | Archived historical periods — compare this week vs last week |
+**⑤ System metrics** — Avg latency (ms per classification), total predictions (since server start), avg confidence (mean model confidence).
 
-Resize the chart vertically with the handle at the bottom.
+**⑥ Drift risk cards** — Four cards, one per drift signal. Each shows the PSI value, a color-coded level badge, and auto-updates every few seconds.
 
-### ⑤ System metrics — below chart
-- **Avg Latency**: milliseconds per classification
-- **Predictions**: total since server start
-- **Avg Confidence**: mean model confidence across all predictions
+### Drift risk cards
 
-### ⑥ Drift risk cards — bottom right
+![Drift cards](screenshots/ui_drift.png)
 
-![Drift cards](screenshots/ui_drift_cards_annotated.png)
-
-Four cards, one per drift signal. Each shows the PSI value, a color-coded level badge, and auto-updates every few seconds:
-
-| Card | Color | PSI Range | Meaning |
+| Card | Risk levels | PSI is unbounded | What it measures |
 |---|---|---|---|
-| **Data Drift** | 🟢 🟡 🟠 🔴 | 0 → 0.3+ | Text length distribution shift |
-| **Prediction Drift** | 🟢 🟡 🟠 🔴 | 0 → 0.3+ | Model confidence distribution shift |
-| **Target Drift** | 🟢 🟡 🟠 🔴 | 0 → 0.3+ | Sentiment label distribution shift |
-| **Semantic Drift** | 🟢 🟡 🟠 🔴 | 0 → 0.3+ | Language / embedding space shift |
+| **Data Drift** | 🟢 low < 0.1 → 🟡 medium < 0.2 → 🟠 high < 0.3 → 🔴 critical ≥ 0.3 | Text length shifts |
+| **Prediction Drift** | Same gradient | Model confidence distribution shifts |
+| **Target Drift** | Same gradient | Sentiment label distribution shifts |
+| **Semantic Drift** | Same gradient | Language / embedding space shifts |
 
-> **PSI ≥ 0.25 triggers an ALERT.** That is your signal to collect new data and trigger a PEFT retraining run.
+PSI has no upper bound — 0.3 is simply where `psi_to_risk()` marks it **critical** (risk_pct = 100%). The alert threshold at **PSI ≥ 0.25** is your signal to collect new data and trigger a PEFT retraining run.
 
-### KPI cards — close-up
+### KPI cards
 
-![KPIs](screenshots/ui_kpis_annotated.png)
+![KPIs](screenshots/ui_kpis.png)
 
 Four compact stats at the top of the right panel — total count and three sentiment percentages. These reflect the current accumulation window (default 24h).
 
-### Sentiment chart — close-up
+### Sentiment chart
 
-![Chart](screenshots/ui_chart_annotated.png)
+![Chart](screenshots/ui_chart.png)
 
-The bar chart supports three views. Resize it vertically with the handle. Each bar shows the exact count as a floating label. Hover for Chart.js tooltips.
+Three views: Inference (current batch), Accumulation (window totals), Memory (archived periods). Resize vertically. Each bar shows exact count as a floating label.
 
 ---
 
