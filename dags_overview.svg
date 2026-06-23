@@ -1,0 +1,222 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" font-family="-apple-system,Inter,'SF Pro Display',sans-serif">
+  <defs>
+    <linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f5f5f7"/>
+      <stop offset="100%" stop-color="#e8e8ed"/>
+    </linearGradient>
+    <linearGradient id="tw" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <linearGradient id="am" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <linearGradient id="eval" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="sem" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="dep" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f472b6"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.1"/>
+    </filter>
+    <filter id="card">
+      <feDropShadow dx="0" dy="1" stdDeviation="3" flood-opacity="0.08"/>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#c7c7cc"/>
+    </marker>
+    <marker id="arrow-up" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="900" fill="url(#bg1)" rx="16"/>
+
+  <!-- Title -->
+  <text x="600" y="48" text-anchor="middle" font-size="24" font-weight="700" fill="#1d1d1f" letter-spacing="-0.3">Airflow DAGs</text>
+  <text x="600" y="68" text-anchor="middle" font-size="13" fill="#86868b">Two pipelines — one automated, one manual — powering the sentiment feedback loop</text>
+
+  <!-- ============================================================ -->
+  <!-- DAG 1: Base Pipeline                                          -->
+  <!-- ============================================================ -->
+
+  <!-- DAG 1 Card Background -->
+  <rect x="30" y="95" width="1140" height="340" rx="16" fill="#fff" opacity="0.85" filter="url(#card)"/>
+  <rect x="30" y="95" width="1140" height="340" rx="16" fill="none" stroke="#e8e8ed" stroke-width="1"/>
+
+  <!-- DAG 1 Header -->
+  <rect x="30" y="95" width="1140" height="48" rx="16" fill="#f5f5f7"/>
+  <rect x="30" y="127" width="1140" height="16" fill="#f5f5f7"/>
+  <circle cx="58" cy="119" r="12" fill="#3b82f6" opacity="0.15"/>
+  <text x="58" y="124" text-anchor="middle" font-size="12" fill="#3b82f6" font-weight="700">1</text>
+  <text x="80" y="124" font-size="16" font-weight="700" fill="#1d1d1f">Base Pipeline</text>
+  <text x="300" y="124" font-size="11" fill="#86868b">DAG: base_model_pipeline</text>
+
+  <!-- Schedule badge -->
+  <rect x="990" y="108" width="100" height="24" rx="12" fill="#dbeafe"/>
+  <text x="1040" y="124" text-anchor="middle" font-size="11" font-weight="600" fill="#2563eb">SCHEDULED</text>
+
+  <!-- DAG 1: Twitter Pipeline -->
+  <text x="60" y="172" font-size="11" font-weight="600" fill="#60a5fa" text-transform="uppercase" letter-spacing="0.5">Twitter Dataset</text>
+
+  <!-- Step boxes for twitter -->
+  <rect x="60" y="185" width="130" height="44" rx="10" fill="url(#tw)" filter="url(#shadow)"/>
+  <text x="125" y="205" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">Preprocess</text>
+  <text x="125" y="220" text-anchor="middle" font-size="9" fill="#bfdbfe">twitter</text>
+
+  <!-- Arrow -->
+  <line x1="190" y1="207" x2="220" y2="207" stroke="#c7c7cc" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="225" y="185" width="130" height="44" rx="10" fill="url(#eval)" filter="url(#shadow)"/>
+  <text x="290" y="205" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">Base Evaluate</text>
+  <text x="290" y="220" text-anchor="middle" font-size="9" fill="#fef3c7">use_peft=false</text>
+
+  <line x1="355" y1="207" x2="385" y2="207" stroke="#c7c7cc" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="390" y="185" width="160" height="44" rx="10" fill="url(#sem)" filter="url(#shadow)"/>
+  <text x="470" y="205" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">Semantic Baseline</text>
+  <text x="470" y="220" text-anchor="middle" font-size="9" fill="#ede9fe">pca + kmeans</text>
+
+  <!-- DAG 1: Amazon Pipeline -->
+  <text x="60" y="262" font-size="11" font-weight="600" fill="#34d399" text-transform="uppercase" letter-spacing="0.5">Amazon Dataset</text>
+
+  <rect x="60" y="275" width="130" height="44" rx="10" fill="url(#am)" filter="url(#shadow)"/>
+  <text x="125" y="295" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">Preprocess</text>
+  <text x="125" y="310" text-anchor="middle" font-size="9" fill="#a7f3d0">amazon</text>
+
+  <line x1="190" y1="297" x2="220" y2="297" stroke="#c7c7cc" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="225" y="275" width="130" height="44" rx="10" fill="url(#eval)" filter="url(#shadow)"/>
+  <text x="290" y="295" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">Base Evaluate</text>
+  <text x="290" y="310" text-anchor="middle" font-size="9" fill="#fef3c7">use_peft=false</text>
+
+  <line x1="355" y1="297" x2="385" y2="297" stroke="#c7c7cc" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="390" y="275" width="160" height="44" rx="10" fill="url(#sem)" filter="url(#shadow)"/>
+  <text x="470" y="295" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">Semantic Baseline</text>
+  <text x="470" y="310" text-anchor="middle" font-size="9" fill="#ede9fe">pca + kmeans</text>
+
+  <!-- DAG 1: Side outputs -->
+  <rect x="630" y="185" width="200" height="134" rx="12" fill="#fafafa" stroke="#e8e8ed" stroke-width="1"/>
+  <text x="730" y="208" text-anchor="middle" font-size="11" font-weight="600" fill="#1d1d1f">Outputs</text>
+  <text x="645" y="228" font-size="10" fill="#6e6e73">● Evaluation metrics (acc, f1, p/r)</text>
+  <text x="645" y="246" font-size="10" fill="#6e6e73">● semantic_pca.pkl</text>
+  <text x="645" y="264" font-size="10" fill="#6e6e73">● semantic_kmeans.pkl</text>
+  <text x="645" y="282" font-size="10" fill="#6e6e73">● semantic_expected.npy</text>
+
+  <!-- Connect twitter to amazon -->
+  <path d="M 470 229 L 540 229 L 540 275 L 556 275" fill="none" stroke="#c7c7cc" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arrow)"/>
+  <text x="545" y="255" font-size="9" fill="#a1a1aa" text-anchor="middle">sequentially</text>
+
+  <!-- ============================================================ -->
+  <!-- DAG 2: PEFT Training                                          -->
+  <!-- ============================================================ -->
+
+  <!-- DAG 2 Card Background -->
+  <rect x="30" y="460" width="1140" height="410" rx="16" fill="#fff" opacity="0.85" filter="url(#card)"/>
+  <rect x="30" y="460" width="1140" height="410" rx="16" fill="none" stroke="#e8e8ed" stroke-width="1"/>
+
+  <!-- DAG 2 Header -->
+  <rect x="30" y="460" width="1140" height="48" rx="16" fill="#f5f5f7"/>
+  <rect x="30" y="492" width="1140" height="16" fill="#f5f5f7"/>
+  <circle cx="58" cy="484" r="12" fill="#f59e0b" opacity="0.15"/>
+  <text x="58" y="489" text-anchor="middle" font-size="12" fill="#f59e0b" font-weight="700">2</text>
+  <text x="80" y="489" font-size="16" font-weight="700" fill="#1d1d1f">PEFT Training</text>
+  <text x="300" y="489" font-size="11" fill="#86868b">DAG: peft_training</text>
+
+  <!-- Manual trigger badge -->
+  <rect x="1005" y="473" width="125" height="24" rx="12" fill="#fef3c7"/>
+  <text x="1067" y="489" text-anchor="middle" font-size="11" font-weight="600" fill="#d97706">MANUAL ONLY</text>
+
+  <!-- DAG 2: Twitter Pipeline -->
+  <text x="60" y="537" font-size="11" font-weight="600" fill="#60a5fa" text-transform="uppercase" letter-spacing="0.5">Twitter Dataset</text>
+
+  <rect x="60" y="550" width="130" height="44" rx="10" fill="url(#tw)" filter="url(#shadow)"/>
+  <text x="125" y="570" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">LoRA Train</text>
+  <text x="125" y="585" text-anchor="middle" font-size="9" fill="#bfdbfe">1 epoch, lr=2e-5</text>
+
+  <line x1="190" y1="572" x2="220" y2="572" stroke="#c7c7cc" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="225" y="550" width="130" height="44" rx="10" fill="url(#eval)" filter="url(#shadow)"/>
+  <text x="290" y="570" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">LoRA Evaluate</text>
+  <text x="290" y="585" text-anchor="middle" font-size="9" fill="#fef3c7">use_peft=true</text>
+
+  <line x1="355" y1="572" x2="385" y2="572" stroke="#c7c7cc" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="390" y="550" width="160" height="44" rx="10" fill="url(#sem)" filter="url(#shadow)"/>
+  <text x="470" y="570" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">Drift Baselines</text>
+  <text x="470" y="585" text-anchor="middle" font-size="9" fill="#ede9fe">data+target+prediction</text>
+
+  <!-- DAG 2: Amazon Pipeline -->
+  <text x="60" y="627" font-size="11" font-weight="600" fill="#34d399" text-transform="uppercase" letter-spacing="0.5">Amazon Dataset</text>
+
+  <rect x="60" y="640" width="130" height="44" rx="10" fill="url(#am)" filter="url(#shadow)"/>
+  <text x="125" y="660" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">LoRA Train</text>
+  <text x="125" y="675" text-anchor="middle" font-size="9" fill="#a7f3d0">1 epoch, lr=2e-5</text>
+
+  <line x1="190" y1="662" x2="220" y2="662" stroke="#c7c7cc" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="225" y="640" width="130" height="44" rx="10" fill="url(#eval)" filter="url(#shadow)"/>
+  <text x="290" y="660" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">LoRA Evaluate</text>
+  <text x="290" y="675" text-anchor="middle" font-size="9" fill="#fef3c7">use_peft=true</text>
+
+  <line x1="355" y1="662" x2="385" y2="662" stroke="#c7c7cc" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="390" y="640" width="160" height="44" rx="10" fill="url(#sem)" filter="url(#shadow)"/>
+  <text x="470" y="660" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">Drift Baselines</text>
+  <text x="470" y="675" text-anchor="middle" font-size="9" fill="#ede9fe">data+target+prediction</text>
+
+  <!-- Connect twitter to amazon -->
+  <path d="M 470 594 L 540 594 L 540 640 L 556 640" fill="none" stroke="#c7c7cc" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arrow)"/>
+  <text x="545" y="620" font-size="9" fill="#a1a1aa" text-anchor="middle">sequentially</text>
+
+  <!-- Deploy step -->
+  <line x1="550" y1="662" x2="630" y2="696" stroke="#c7c7cc" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="635" y="680" width="130" height="44" rx="10" fill="url(#dep)" filter="url(#shadow)"/>
+  <text x="700" y="700" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">Deploy</text>
+  <text x="700" y="715" text-anchor="middle" font-size="9" fill="#fce7f3">copy to inference/</text>
+
+  <line x1="765" y1="702" x2="795" y2="702" stroke="#c7c7cc" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- End node -->
+  <circle cx="820" cy="702" r="16" fill="#e8e8ed"/>
+  <text x="820" y="707" text-anchor="middle" font-size="11" fill="#6e6e73" font-weight="600">✓</text>
+
+  <!-- DAG 2: Side outputs -->
+  <rect x="880" y="550" width="250" height="134" rx="12" fill="#fafafa" stroke="#e8e8ed" stroke-width="1"/>
+  <text x="1005" y="573" text-anchor="middle" font-size="11" font-weight="600" fill="#1d1d1f">Outputs</text>
+  <text x="895" y="593" font-size="10" fill="#6e6e73">● adapter_model.safetensors (LoRA)</text>
+  <text x="895" y="611" font-size="10" fill="#6e6e73">● data_drift_baseline.json</text>
+  <text x="895" y="629" font-size="10" fill="#6e6e73">● target_drift_baseline.json</text>
+  <text x="895" y="647" font-size="10" fill="#6e6e73">● prediction_drift_baseline.json</text>
+  <text x="895" y="665" font-size="10" fill="#6e6e73">● Adapters deployed to inference/</text>
+
+  <!-- DAG 2: Trigger source -->
+  <rect x="610" y="760" width="220" height="36" rx="18" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <text x="720" y="783" text-anchor="middle" font-size="12" font-weight="600" fill="#d97706">← Triggered from drift dashboard alert</text>
+
+  <!-- Legend -->
+  <rect x="30" y="852" width="520" height="32" rx="8" fill="#fafafa"/>
+  <rect x="48" y="862" width="14" height="14" rx="4" fill="url(#tw)"/>
+  <text x="72" y="874" font-size="11" fill="#6e6e73">Twitter</text>
+  <rect x="138" y="862" width="14" height="14" rx="4" fill="url(#am)"/>
+  <text x="162" y="874" font-size="11" fill="#6e6e73">Amazon</text>
+  <rect x="228" y="862" width="14" height="14" rx="4" fill="url(#eval)"/>
+  <text x="252" y="874" font-size="11" fill="#6e6e73">Evaluation</text>
+  <rect x="330" y="862" width="14" height="14" rx="4" fill="url(#sem)"/>
+  <text x="354" y="874" font-size="11" fill="#6e6e73">Baseline</text>
+  <rect x="420" y="862" width="14" height="14" rx="4" fill="url(#dep)"/>
+  <text x="444" y="874" font-size="11" fill="#6e6e73">Deploy</text>
+
+  <text x="1060" y="874" text-anchor="end" font-size="10" fill="#a1a1aa">GPU required   |   Airflow 3.x</text>
+</svg>
