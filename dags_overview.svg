@@ -71,7 +71,7 @@
   <!-- Step boxes for twitter -->
   <rect x="60" y="185" width="130" height="44" rx="10" fill="url(#tw)" filter="url(#shadow)"/>
   <text x="125" y="205" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">Preprocess</text>
-  <text x="125" y="220" text-anchor="middle" font-size="9" fill="#bfdbfe">twitter</text>
+  <text x="125" y="220" text-anchor="middle" font-size="9" fill="#bfdbfe">twitter dataset</text>
 
   <!-- Arrow -->
   <line x1="190" y1="207" x2="220" y2="207" stroke="#c7c7cc" stroke-width="2" marker-end="url(#arrow)"/>
@@ -91,7 +91,7 @@
 
   <rect x="60" y="275" width="130" height="44" rx="10" fill="url(#am)" filter="url(#shadow)"/>
   <text x="125" y="295" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">Preprocess</text>
-  <text x="125" y="310" text-anchor="middle" font-size="9" fill="#a7f3d0">amazon</text>
+  <text x="125" y="310" text-anchor="middle" font-size="9" fill="#a7f3d0">amazon dataset</text>
 
   <line x1="190" y1="297" x2="220" y2="297" stroke="#c7c7cc" stroke-width="2" marker-end="url(#arrow)"/>
 
@@ -141,13 +141,13 @@
   <text x="60" y="537" font-size="11" font-weight="600" fill="#60a5fa" text-transform="uppercase" letter-spacing="0.5">Twitter Dataset</text>
 
   <rect x="60" y="550" width="130" height="44" rx="10" fill="url(#tw)" filter="url(#shadow)"/>
-  <text x="125" y="570" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">LoRA Train</text>
+  <text x="125" y="570" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">LoRA</text>
   <text x="125" y="585" text-anchor="middle" font-size="9" fill="#bfdbfe">1 epoch, lr=2e-5</text>
 
   <line x1="190" y1="572" x2="220" y2="572" stroke="#c7c7cc" stroke-width="2" marker-end="url(#arrow)"/>
 
   <rect x="225" y="550" width="130" height="44" rx="10" fill="url(#eval)" filter="url(#shadow)"/>
-  <text x="290" y="570" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">LoRA Evaluate</text>
+  <text x="290" y="570" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">Evaluate</text>
   <text x="290" y="585" text-anchor="middle" font-size="9" fill="#fef3c7">use_peft=true</text>
 
   <line x1="355" y1="572" x2="385" y2="572" stroke="#c7c7cc" stroke-width="2" marker-end="url(#arrow)"/>
@@ -160,13 +160,13 @@
   <text x="60" y="627" font-size="11" font-weight="600" fill="#34d399" text-transform="uppercase" letter-spacing="0.5">Amazon Dataset</text>
 
   <rect x="60" y="640" width="130" height="44" rx="10" fill="url(#am)" filter="url(#shadow)"/>
-  <text x="125" y="660" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">LoRA Train</text>
+  <text x="125" y="660" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">LoRA</text>
   <text x="125" y="675" text-anchor="middle" font-size="9" fill="#a7f3d0">1 epoch, lr=2e-5</text>
 
   <line x1="190" y1="662" x2="220" y2="662" stroke="#c7c7cc" stroke-width="2" marker-end="url(#arrow)"/>
 
   <rect x="225" y="640" width="130" height="44" rx="10" fill="url(#eval)" filter="url(#shadow)"/>
-  <text x="290" y="660" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">LoRA Evaluate</text>
+  <text x="290" y="660" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">Evaluate</text>
   <text x="290" y="675" text-anchor="middle" font-size="9" fill="#fef3c7">use_peft=true</text>
 
   <line x1="355" y1="662" x2="385" y2="662" stroke="#c7c7cc" stroke-width="2" marker-end="url(#arrow)"/>
