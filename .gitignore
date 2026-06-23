@@ -102,6 +102,7 @@ test_reviews.csv
 test_ui.mjs
 test-results/
 colab_data.zip
+mock_customers_*.csv
 
 # Notebooks (personal exploration, not project code)
 colab_training.ipynb

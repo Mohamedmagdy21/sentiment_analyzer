@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import math
 import pandas as pd
 from datetime import datetime
 from fastapi import FastAPI, UploadFile, File
@@ -62,7 +63,10 @@ twitter_models = None
 amazon_models = None
 _last_inference = {"positive": 0, "negative": 0, "neutral": 0, "total": 0}
 _last_csv = None
+_last_crm_csv = None
+_last_crm_filename = None
 TEMP_CSV = "/tmp/_sentiment_result.csv"
+TEMP_CRM_CSV = "/tmp/_crm_action_list.csv"
 
 
 def get_twitter_models():
@@ -136,27 +140,79 @@ def _record_inference(counts):
     _update_lifecycle_gauges(counts, accumulation, memory)
 
 
+def _generate_crm_action_list(df, total_input_rows):
+    """Extract the top 10% highest-confidence negative records, capped at 1000.
+
+    Returns (crm_csv_string, filename) or (None, None) if no negatives exist.
+    """
+    neg_df = df[df["sentiment"] == "negative"].copy()
+    if neg_df.empty:
+        return None, None
+
+    neg_df = neg_df.sort_values("confidence", ascending=False)
+
+    top_10pct_count = max(1, math.ceil(len(neg_df) * 0.10))
+    crm_df = neg_df.head(top_10pct_count)
+
+    if len(crm_df) > 1000:
+        crm_df = crm_df.head(1000)
+
+    crm_columns = [
+        "customer_id", "customer_name", "phone_number",
+        "text", "sentiment", "confidence", "model_used"
+    ]
+    available_cols = [c for c in crm_columns if c in crm_df.columns]
+    crm_df = crm_df[available_cols]
+
+    crm_csv = crm_df.to_csv(index=False)
+
+    pct = (len(crm_df) / total_input_rows) * 100 if total_input_rows > 0 else 0
+    filename = f"crm_action_list_percentage_{pct:.2f}percent.csv"
+
+    return crm_csv, filename
+
+
 @app.post("/predict", response_class=Response)
 def predict(file: UploadFile = File(...)):
-    """Accept a CSV, classify each text row, and return the augmented CSV with predictions."""
+    """Accept a CSV, classify each text row, return the master CSV with predictions.
+
+    Also generates a CRM action list (top 10% negatives by confidence, capped at 1000)
+    available for download at /download/crm.
+    """
     start = time.perf_counter()
     df = pd.read_csv(file.file)
-    df = df.dropna(subset=[df.columns[0]])
-    texts = df.iloc[:, 0].tolist()
+
+    if "text" in df.columns:
+        text_col = "text"
+    else:
+        text_col = df.columns[0]
+
+    df = df.dropna(subset=[text_col])
+    texts = df[text_col].astype(str).tolist()
+
     results, counts = _classify_texts(texts)
     df["sentiment"] = [r.sentiment for r in results]
-    df["label"] = [r.label for r in results]
     df["confidence"] = [r.confidence for r in results]
     df["model_used"] = [r.model_used for r in results]
+
     elapsed = time.perf_counter() - start
     INFERENCE_LATENCY.observe(elapsed)
     _record_inference(counts)
     _log_inference(texts, results)
+
     csv_output = df.to_csv(index=False)
-    global _last_csv
+    global _last_csv, _last_crm_csv, _last_crm_filename
     _last_csv = csv_output
     with open(TEMP_CSV, "w") as f:
         f.write(csv_output)
+
+    crm_csv, crm_filename = _generate_crm_action_list(df, len(df))
+    _last_crm_csv = crm_csv
+    _last_crm_filename = crm_filename
+    if crm_csv:
+        with open(TEMP_CRM_CSV, "w") as f:
+            f.write(crm_csv)
+
     return Response(content=csv_output, media_type="text/csv")
 
 
@@ -180,11 +236,22 @@ def metrics():
 
 @app.get("/download")
 def download():
-    """Serve the last prediction CSV as a downloadable file."""
+    """Serve the last master prediction CSV as a downloadable file."""
     if not _last_csv:
         return Response("No results yet", status_code=404)
     return Response(content=_last_csv, media_type="text/csv", headers={
         "Content-Disposition": "attachment; filename=results.csv"
+    })
+
+
+@app.get("/download/crm")
+def download_crm():
+    """Serve the CRM action list CSV (top 10% negatives, capped at 1000)."""
+    if not _last_crm_csv:
+        return Response("No CRM action list available", status_code=404)
+    filename = _last_crm_filename or "crm_action_list.csv"
+    return Response(content=_last_crm_csv, media_type="text/csv", headers={
+        "Content-Disposition": f'attachment; filename="{filename}"'
     })
 
 
